@@ -1,0 +1,34 @@
+# Build & Class Files
+bin/
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Logs & Runtime State
+*.log
+test_data/
+appendonly.aof*
+dump.rdb*
+
+# IDE & Editor files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Excluded personal/scratch files
+index.html
+self-learning-agent/
+.env
+.env.*

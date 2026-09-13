@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  redis-master:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: redis-master
+    ports:
+      - "6379:6379"
+    command: ["--port", "6379", "--aof", "true", "--rdb", "true"]
+    networks:
+      - redis-net
+    restart: unless-stopped
+
+  redis-replica:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: redis-replica
+    ports:
+      - "6380:6380"
+    command: ["--port", "6380", "--replicaof", "redis-master", "6379"]
+    depends_on:
+      - redis-master
+    networks:
+      - redis-net
+    restart: unless-stopped
+
+networks:
+  redis-net:
+    driver: bridge

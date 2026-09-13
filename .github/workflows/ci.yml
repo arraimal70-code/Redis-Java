@@ -1,0 +1,46 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Compile Source Code
+        run: |
+          mkdir -p bin
+          find src -name "*.java" > sources.txt
+          javac -d bin @sources.txt
+
+      - name: Compile & Run Test Suite
+        run: |
+          find test -name "*.java" > test_sources.txt
+          javac -d bin -cp "bin" @test_sources.txt
+          java -cp "bin" com.redisclone.RedisServerTest
+
+      - name: Run Benchmark Sanity Check
+        run: |
+          # Start background server
+          java -cp "bin" com.redisclone.server.RedisServer --port 6399 --aof false --rdb false &
+          SERVER_PID=$!
+          sleep 2
+
+          # Run 10000 benchmark requests
+          java -cp "bin" com.redisclone.benchmark.RedisBenchmark --port 6399 -n 10000 -c 20
+
+          # Terminate background server
+          kill $SERVER_PID
