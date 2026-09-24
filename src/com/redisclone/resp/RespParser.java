@@ -78,22 +78,26 @@ public class RespParser {
         }
     }
 
+    public static final int MAX_BULK_STRING_LENGTH = 512 * 1024 * 1024; // 512 MB (matches Redis proto-max-bulk-len)
+    public static final int MAX_ARRAY_ELEMENTS = 1024 * 1024; // 1,048,576 elements max per array frame
+
     private static RespFrame.BulkString parseBulkString(ByteBuffer buffer) {
         byte[] lengthLine = readLine(buffer);
         if (lengthLine == null) return null;
 
         int length;
         try {
-            length = (int) parseAsciiLong(lengthLine, 0, lengthLine.length);
+            long parsed = parseAsciiLong(lengthLine, 0, lengthLine.length);
+            if (parsed > MAX_BULK_STRING_LENGTH || parsed < -1) {
+                return null; // Invalid length; caller will handle or connection will reject
+            }
+            length = (int) parsed;
         } catch (NumberFormatException e) {
             return null;
         }
 
         if (length == -1) {
             return RespFrame.ofNullBulkString();
-        }
-        if (length < -1) {
-            return null;
         }
 
         // Must have length bytes + 2 bytes for CRLF
@@ -120,7 +124,11 @@ public class RespParser {
 
         int count;
         try {
-            count = (int) parseAsciiLong(countLine, 0, countLine.length);
+            long parsed = parseAsciiLong(countLine, 0, countLine.length);
+            if (parsed > MAX_ARRAY_ELEMENTS || parsed < -1) {
+                return null;
+            }
+            count = (int) parsed;
         } catch (NumberFormatException e) {
             return null;
         }
@@ -221,7 +229,11 @@ public class RespParser {
             if (b < '0' || b > '9') {
                 throw new NumberFormatException("Invalid numeric byte: " + (char) b);
             }
-            result = result * 10 + (b - '0');
+            int digit = b - '0';
+            if (result > (Long.MAX_VALUE - digit) / 10) {
+                throw new NumberFormatException("Numeric overflow: value exceeds 64-bit integer limit");
+            }
+            result = result * 10 + digit;
         }
         return negative ? -result : result;
     }

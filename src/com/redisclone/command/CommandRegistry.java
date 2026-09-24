@@ -177,7 +177,11 @@ public class CommandRegistry {
                 client, dataStore, pubSubManager, aofManager, rdbManager,
                 replicationManager, clusterSlotRouter, this, serverPort
         );
+        com.redisclone.server.ServerMetrics.getInstance().recordCommand();
         RespFrame reply = command.execute(ctx, args);
+        if (reply instanceof RespFrame.Error) {
+            com.redisclone.server.ServerMetrics.getInstance().recordCommandError();
+        }
 
         // State mutation: Persist to AOF and broadcast to connected replicas
         if (command.isWriteCommand()) {

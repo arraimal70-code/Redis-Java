@@ -52,17 +52,31 @@ public class UtilityCommands {
             long replOffset = ctx.getReplicationManager() != null ? ctx.getReplicationManager().getBacklog().getMasterOffset() : 0L;
             boolean clusterOn = ctx.getClusterSlotRouter() != null && ctx.getClusterSlotRouter().isClusterEnabled();
 
+            com.redisclone.server.ServerMetrics metrics = com.redisclone.server.ServerMetrics.getInstance();
+
             String info = "# Server\r\n" +
                     "redis_version:7.0.0-systems-clone\r\n" +
                     "os:" + System.getProperty("os.name") + "\r\n" +
                     "process_id:" + ProcessHandle.current().pid() + "\r\n" +
                     "tcp_port:" + ctx.getServerPort() + "\r\n" +
+                    "uptime_in_seconds:" + metrics.getUptimeSeconds() + "\r\n" +
                     "# Memory\r\n" +
                     "used_memory:" + dataMem + "\r\n" +
                     "used_memory_human:" + (dataMem / 1024) + "K\r\n" +
                     "jvm_heap_used:" + jvmUsed + "\r\n" +
                     "jvm_heap_total:" + totalMem + "\r\n" +
                     "maxmemory_policy:" + (ctx.getDataStore().getEvictionPolicy() != null ? ctx.getDataStore().getEvictionPolicy().getName() : "none") + "\r\n" +
+                    "# Stats\r\n" +
+                    "total_connections_received:" + metrics.getTotalConnectionsReceived() + "\r\n" +
+                    "total_commands_processed:" + metrics.getTotalCommandsProcessed() + "\r\n" +
+                    "total_command_errors:" + metrics.getTotalCommandErrors() + "\r\n" +
+                    "keyspace_hits:" + metrics.getKeyspaceHits() + "\r\n" +
+                    "keyspace_misses:" + metrics.getKeyspaceMisses() + "\r\n" +
+                    "keyspace_hit_ratio:" + String.format(java.util.Locale.ROOT, "%.4f", metrics.getHitRatio()) + "\r\n" +
+                    "expired_keys:" + metrics.getExpiredKeys() + "\r\n" +
+                    "evicted_keys:" + metrics.getEvictedKeys() + "\r\n" +
+                    "total_net_input_bytes:" + metrics.getTotalNetInputBytes() + "\r\n" +
+                    "total_net_output_bytes:" + metrics.getTotalNetOutputBytes() + "\r\n" +
                     "# Replication\r\n" +
                     "role:" + role + "\r\n" +
                     "connected_slaves:" + slaves + "\r\n" +

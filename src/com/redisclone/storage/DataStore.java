@@ -81,6 +81,7 @@ public class DataStore {
             db.remove(evictedKey);
             expires.remove(evictedKey);
             bumpKeyVersion(evictedKey);
+            com.redisclone.server.ServerMetrics.getInstance().recordEvictedKey();
         }
     }
 
@@ -100,6 +101,7 @@ public class DataStore {
                 evictionPolicy.onKeyDelete(key);
             }
             bumpKeyVersion(key);
+            com.redisclone.server.ServerMetrics.getInstance().recordExpiredKey();
             return true;
         }
         return false;
@@ -151,22 +153,32 @@ public class DataStore {
             }
         }
 
+        if (totalEvicted > 0) {
+            com.redisclone.server.ServerMetrics.getInstance().recordExpiredKeys(totalEvicted);
+        }
         return totalEvicted;
     }
 
     private List<String> sampleRandomExpiryKeys(int count) {
-        int size = expires.size();
-        if (size == 0) return Collections.emptyList();
+        if (expires.isEmpty()) return Collections.emptyList();
 
-        List<String> allKeys = new ArrayList<>(expires.keySet());
-        if (allKeys.size() <= count) {
-            return allKeys;
+        List<String> sampled = new ArrayList<>(Math.min(count, expires.size()));
+        Iterator<String> it = expires.keySet().iterator();
+
+        int size = expires.size();
+        int step = Math.max(1, size / Math.max(1, count * 2));
+        int current = 0;
+
+        while (it.hasNext() && sampled.size() < count) {
+            String key = it.next();
+            if (current++ % step == 0) {
+                sampled.add(key);
+            }
         }
 
-        List<String> sampled = new ArrayList<>(count);
-        for (int i = 0; i < count; i++) {
-            int idx = ThreadLocalRandom.current().nextInt(allKeys.size());
-            sampled.add(allKeys.get(idx));
+        // If step skipped too many and sample is under capacity, drain remaining
+        while (it.hasNext() && sampled.size() < count) {
+            sampled.add(it.next());
         }
         return sampled;
     }
@@ -183,10 +195,18 @@ public class DataStore {
     }
 
     public RedisObject get(String key) {
-        if (checkAndExpire(key)) return null;
+        if (checkAndExpire(key)) {
+            com.redisclone.server.ServerMetrics.getInstance().recordMiss();
+            return null;
+        }
         RedisObject obj = db.get(key);
-        if (obj != null && evictionPolicy != null) {
-            evictionPolicy.onKeyAccess(key);
+        if (obj != null) {
+            if (evictionPolicy != null) {
+                evictionPolicy.onKeyAccess(key);
+            }
+            com.redisclone.server.ServerMetrics.getInstance().recordHit();
+        } else {
+            com.redisclone.server.ServerMetrics.getInstance().recordMiss();
         }
         return obj;
     }

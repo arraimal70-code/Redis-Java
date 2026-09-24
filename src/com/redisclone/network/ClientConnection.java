@@ -58,8 +58,17 @@ public class ClientConnection {
         return remoteAddress;
     }
 
+    public static final int MAX_READ_BUFFER_CAPACITY = 16 * 1024 * 1024; // 16 MB max read buffer per client
+    public static final long MAX_PENDING_WRITE_BYTES = 32 * 1024 * 1024; // 32 MB max pending write buffer per client
+
+    private final java.util.concurrent.atomic.AtomicLong pendingWriteBytes = new java.util.concurrent.atomic.AtomicLong(0);
+
     public ByteBuffer getReadBuffer() {
         return readBuffer;
+    }
+
+    public long getPendingWriteBytes() {
+        return pendingWriteBytes.get();
     }
 
     /**
@@ -70,14 +79,22 @@ public class ClientConnection {
      */
     public int readFromChannel() throws IOException {
         if (!readBuffer.hasRemaining()) {
-            // Buffer is full; expand capacity
+            // Buffer is full; expand capacity up to limit
             expandReadBuffer();
         }
-        return channel.read(readBuffer);
+        int read = channel.read(readBuffer);
+        if (read > 0) {
+            com.redisclone.server.ServerMetrics.getInstance().recordNetInput(read);
+        }
+        return read;
     }
 
-    private void expandReadBuffer() {
-        ByteBuffer newBuffer = ByteBuffer.allocate(readBuffer.capacity() * 2);
+    private void expandReadBuffer() throws IOException {
+        if (readBuffer.capacity() >= MAX_READ_BUFFER_CAPACITY) {
+            throw new IOException("ERR client read buffer exceeded maximum threshold of " + MAX_READ_BUFFER_CAPACITY + " bytes");
+        }
+        int newCapacity = (int) Math.min((long) readBuffer.capacity() * 2, MAX_READ_BUFFER_CAPACITY);
+        ByteBuffer newBuffer = ByteBuffer.allocate(newCapacity);
         readBuffer.flip();
         newBuffer.put(readBuffer);
         readBuffer = newBuffer;
@@ -107,8 +124,13 @@ public class ClientConnection {
 
     /**
      * Enqueues raw bytes directly into the write queue and signals interest in OP_WRITE.
+     * Enforces backpressure limits to prevent memory exhaustion by slow clients.
      */
     public void sendRawBytes(byte[] bytes) {
+        if (pendingWriteBytes.get() + bytes.length > MAX_PENDING_WRITE_BYTES) {
+            throw new IllegalStateException("ERR client output buffer limit exceeded (slow consumer backpressure protection)");
+        }
+        pendingWriteBytes.addAndGet(bytes.length);
         writeQueue.add(ByteBuffer.wrap(bytes));
         enableWriteInterest();
     }
@@ -128,7 +150,13 @@ public class ClientConnection {
     public boolean flushWrites() throws IOException {
         while (!writeQueue.isEmpty()) {
             ByteBuffer buffer = writeQueue.peek();
+            int remainingBefore = buffer.remaining();
             channel.write(buffer);
+            int written = remainingBefore - buffer.remaining();
+            if (written > 0) {
+                pendingWriteBytes.addAndGet(-written);
+                com.redisclone.server.ServerMetrics.getInstance().recordNetOutput(written);
+            }
             if (buffer.hasRemaining()) {
                 // OS TCP send buffer is full; keep OP_WRITE set
                 return false;

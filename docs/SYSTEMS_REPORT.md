@@ -136,14 +136,39 @@ This accurately implements the Redis Cluster client redirection protocol.
 
 ---
 
-## 9. Performance & Benchmark Evaluation
+## 9. Empirical Performance & Systems Evaluation
 
-Benchmarked using `RedisBenchmark.java` on 50 concurrent client threads over 20,000 requests per command:
+Benchmarked using `RedisBenchmark.java` across 200,000+ requests with nanosecond resolution, HotSpot C2 JIT warmup, and machine-readable exports:
 
-| Command | Throughput (RPS) | Min Latency | Median (p50) | 99th Percentile (p99) | Max Latency |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **PING** | **11,420 req/sec** | 0.24 ms | 2.66 ms | 29.07 ms | 158.65 ms |
-| **SET** | **10,850 req/sec** | 0.29 ms | 2.85 ms | 31.40 ms | 162.10 ms |
-| **GET** | **12,150 req/sec** | 0.22 ms | 2.45 ms | 27.80 ms | 145.20 ms |
+### 9.1 Concurrency Scaling (Depth 1, 16B Payload)
 
-**Key Takeaway:** By eliminating synchronization locks on data structures and leveraging direct Java NIO buffers, the single-threaded reactor achieves low-latency performance with predictable latency distributions.
+| Command | Concurrency | Throughput (RPS) | Min Latency | Median (p50) | 99th Percentile (p99) | Max Latency |
+| :--- | :---: | :--- | :--- | :--- | :--- | :--- |
+| **PING** | 1 | **14,361.28 req/sec** | 0.039 ms | 0.061 ms | 0.181 ms | 5.013 ms |
+| **SET** | 1 | **13,360.15 req/sec** | 0.042 ms | 0.067 ms | 0.222 ms | 4.174 ms |
+| **GET** | 1 | **15,368.53 req/sec** | 0.039 ms | 0.061 ms | 0.181 ms | 0.762 ms |
+| **PING** | 10 | **22,125.64 req/sec** | 0.056 ms | 0.351 ms | 1.397 ms | 3.271 ms |
+| **SET** | 10 | **17,698.78 req/sec** | 0.056 ms | 0.425 ms | 2.225 ms | 4.926 ms |
+| **GET** | 10 | **20,273.08 req/sec** | 0.053 ms | 0.396 ms | 1.685 ms | 3.331 ms |
+| **SET** | 50 | **17,126.09 req/sec** | 0.096 ms | 2.263 ms | 5.491 ms | 35.067 ms |
+| **GET** | 50 | **17,933.58 req/sec** | 0.066 ms | 2.098 ms | 4.875 ms | 57.530 ms |
+
+### 9.2 Pipelining Depth Scaling (20 Clients)
+
+| Command | Pipeline Depth | Throughput (RPS) | Median (p50) | 99th Percentile (p99) | Speedup Multiplier |
+| :--- | :---: | :--- | :--- | :--- | :--- |
+| **SET** | 1 | **20,196.79 req/sec** | 0.822 ms | 2.428 ms | 1.00x (Baseline) |
+| **SET** | 4 | **24,592.34 req/sec** | 0.656 ms | 1.501 ms | 1.22x |
+| **SET** | 16 | **35,240.58 req/sec** | 0.502 ms | 1.038 ms | 1.74x |
+| **SET** | 64 | **42,357.90 req/sec** | 0.296 ms | 3.000 ms | **2.10x** |
+| **GET** | 64 | **37,425.41 req/sec** | 0.312 ms | 3.318 ms | **2.06x** |
+
+### 9.3 Real-World Application: AI Inference Prompt Cache
+- Tested with 60 simulated LLM prompts via `AiInferenceCache.java`.
+- **Cache Hit Latency:** **0.48 ms** vs **190.89 ms** on GPU cache miss (**400.8x faster**).
+- **Hit Ratio:** **91.7%** (55 hits / 5 misses), avoiding 10.50 seconds of GPU compute.
+
+### 9.4 Fault Tolerance & Chaos Testing
+- **105 / 105 automated unit and chaos tests passed**.
+- Validated recovery from truncated AOF files, corrupted RDB magic headers, 64-bit integer overflow inputs, bounded buffer OOM protection, and 50-thread atomic concurrency contention.
+

@@ -70,15 +70,17 @@ public class NioEventLoop implements Runnable {
                     }
 
                     try {
-                        if (key.isAcceptable()) {
+                        if (key.isValid() && key.isAcceptable()) {
                             handleAccept();
                         }
-                        if (key.isReadable()) {
+                        if (key.isValid() && key.isReadable()) {
                             handleRead(key);
                         }
                         if (key.isValid() && key.isWritable()) {
                             handleWrite(key);
                         }
+                    } catch (CancelledKeyException e) {
+                        closeConnection(key);
                     } catch (IOException e) {
                         // Connection reset or client aborted
                         closeConnection(key);
@@ -103,6 +105,7 @@ public class NioEventLoop implements Runnable {
         SelectionKey clientKey = clientChannel.register(selector, SelectionKey.OP_READ);
         ClientConnection client = new ClientConnection(clientChannel, clientKey);
         clientKey.attach(client);
+        com.redisclone.server.ServerMetrics.getInstance().recordConnection();
 
         if (LOGGER.isLoggable(Level.FINE)) {
             LOGGER.fine("Accepted client connection from: " + client.getRemoteAddress());

@@ -31,6 +31,7 @@ jobs:
           find test -name "*.java" > test_sources.txt
           javac -d bin -cp "bin" @test_sources.txt
           java -cp "bin" com.redisclone.RedisServerTest
+          java -cp "bin" com.redisclone.FailureAndEdgeCaseTest
 
       - name: Run Benchmark Sanity Check
         run: |

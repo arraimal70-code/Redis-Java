@@ -1,0 +1,697 @@
+{
+  "timestamp": "Thu Sep 17 15:49:23 IST 2026",
+  "os": "Windows 11",
+  "java": "21.0.12.1",
+  "results": [
+{
+  "workload": "PING",
+  "totalRequests": 10000,
+  "concurrency": 1,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.6963,
+  "throughputRps": 14361.28,
+  "latency": {
+    "minMs": 0.039,
+    "p50Ms": 0.061,
+    "p90Ms": 0.084,
+    "p95Ms": 0.098,
+    "p99Ms": 0.181,
+    "p999Ms": 0.904,
+    "maxMs": 5.013
+  },
+  "heap": {
+    "beforeBytes": 1230664,
+    "afterBytes": 2237208
+  },
+  "errorCount": 0
+},
+{
+  "workload": "SET",
+  "totalRequests": 10000,
+  "concurrency": 1,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.7485,
+  "throughputRps": 13360.15,
+  "latency": {
+    "minMs": 0.042,
+    "p50Ms": 0.067,
+    "p90Ms": 0.089,
+    "p95Ms": 0.105,
+    "p99Ms": 0.222,
+    "p999Ms": 0.673,
+    "maxMs": 4.174
+  },
+  "heap": {
+    "beforeBytes": 1230904,
+    "afterBytes": 4569808
+  },
+  "errorCount": 0
+},
+{
+  "workload": "GET",
+  "totalRequests": 10000,
+  "concurrency": 1,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.6507,
+  "throughputRps": 15368.53,
+  "latency": {
+    "minMs": 0.039,
+    "p50Ms": 0.061,
+    "p90Ms": 0.075,
+    "p95Ms": 0.086,
+    "p99Ms": 0.181,
+    "p999Ms": 0.259,
+    "maxMs": 0.762
+  },
+  "heap": {
+    "beforeBytes": 1231032,
+    "afterBytes": 3004304
+  },
+  "errorCount": 0
+},
+{
+  "workload": "INCR",
+  "totalRequests": 10000,
+  "concurrency": 1,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.8608,
+  "throughputRps": 11617.09,
+  "latency": {
+    "minMs": 0.041,
+    "p50Ms": 0.068,
+    "p90Ms": 0.098,
+    "p95Ms": 0.117,
+    "p99Ms": 0.243,
+    "p999Ms": 2.607,
+    "maxMs": 22.293
+  },
+  "heap": {
+    "beforeBytes": 1231160,
+    "afterBytes": 3832280
+  },
+  "errorCount": 0
+},
+{
+  "workload": "MIXED",
+  "totalRequests": 10000,
+  "concurrency": 1,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.6836,
+  "throughputRps": 14627.61,
+  "latency": {
+    "minMs": 0.039,
+    "p50Ms": 0.059,
+    "p90Ms": 0.081,
+    "p95Ms": 0.102,
+    "p99Ms": 0.213,
+    "p999Ms": 0.811,
+    "maxMs": 13.889
+  },
+  "heap": {
+    "beforeBytes": 1231696,
+    "afterBytes": 3016528
+  },
+  "errorCount": 0
+},
+{
+  "workload": "PING",
+  "totalRequests": 10000,
+  "concurrency": 10,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.4520,
+  "throughputRps": 22125.64,
+  "latency": {
+    "minMs": 0.056,
+    "p50Ms": 0.351,
+    "p90Ms": 0.653,
+    "p95Ms": 0.782,
+    "p99Ms": 1.397,
+    "p999Ms": 2.351,
+    "maxMs": 3.271
+  },
+  "heap": {
+    "beforeBytes": 1257728,
+    "afterBytes": 2737552
+  },
+  "errorCount": 0
+},
+{
+  "workload": "SET",
+  "totalRequests": 10000,
+  "concurrency": 10,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.5650,
+  "throughputRps": 17698.78,
+  "latency": {
+    "minMs": 0.056,
+    "p50Ms": 0.425,
+    "p90Ms": 0.846,
+    "p95Ms": 1.082,
+    "p99Ms": 2.225,
+    "p999Ms": 4.880,
+    "maxMs": 4.926
+  },
+  "heap": {
+    "beforeBytes": 1257856,
+    "afterBytes": 3901424
+  },
+  "errorCount": 0
+},
+{
+  "workload": "GET",
+  "totalRequests": 10000,
+  "concurrency": 10,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.4933,
+  "throughputRps": 20273.08,
+  "latency": {
+    "minMs": 0.053,
+    "p50Ms": 0.396,
+    "p90Ms": 0.725,
+    "p95Ms": 0.849,
+    "p99Ms": 1.685,
+    "p999Ms": 3.198,
+    "maxMs": 3.331
+  },
+  "heap": {
+    "beforeBytes": 1258712,
+    "afterBytes": 3850176
+  },
+  "errorCount": 0
+},
+{
+  "workload": "INCR",
+  "totalRequests": 10000,
+  "concurrency": 10,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.4828,
+  "throughputRps": 20712.06,
+  "latency": {
+    "minMs": 0.049,
+    "p50Ms": 0.348,
+    "p90Ms": 0.710,
+    "p95Ms": 0.857,
+    "p99Ms": 1.799,
+    "p999Ms": 4.822,
+    "maxMs": 8.977
+  },
+  "heap": {
+    "beforeBytes": 1258904,
+    "afterBytes": 3810480
+  },
+  "errorCount": 0
+},
+{
+  "workload": "MIXED",
+  "totalRequests": 10000,
+  "concurrency": 10,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.5299,
+  "throughputRps": 18872.57,
+  "latency": {
+    "minMs": 0.072,
+    "p50Ms": 0.381,
+    "p90Ms": 0.807,
+    "p95Ms": 1.001,
+    "p99Ms": 1.982,
+    "p999Ms": 3.694,
+    "maxMs": 4.028
+  },
+  "heap": {
+    "beforeBytes": 1259032,
+    "afterBytes": 3516384
+  },
+  "errorCount": 0
+},
+{
+  "workload": "PING",
+  "totalRequests": 10000,
+  "concurrency": 50,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.7453,
+  "throughputRps": 13417.42,
+  "latency": {
+    "minMs": 0.048,
+    "p50Ms": 2.011,
+    "p90Ms": 3.929,
+    "p95Ms": 6.231,
+    "p99Ms": 32.156,
+    "p999Ms": 51.633,
+    "maxMs": 57.287
+  },
+  "heap": {
+    "beforeBytes": 1259160,
+    "afterBytes": 7499816
+  },
+  "errorCount": 0
+},
+{
+  "workload": "SET",
+  "totalRequests": 10000,
+  "concurrency": 50,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.5839,
+  "throughputRps": 17126.09,
+  "latency": {
+    "minMs": 0.096,
+    "p50Ms": 2.263,
+    "p90Ms": 3.772,
+    "p95Ms": 4.229,
+    "p99Ms": 5.491,
+    "p999Ms": 20.684,
+    "maxMs": 35.067
+  },
+  "heap": {
+    "beforeBytes": 2380400,
+    "afterBytes": 7965664
+  },
+  "errorCount": 0
+},
+{
+  "workload": "GET",
+  "totalRequests": 10000,
+  "concurrency": 50,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.5576,
+  "throughputRps": 17933.58,
+  "latency": {
+    "minMs": 0.066,
+    "p50Ms": 2.098,
+    "p90Ms": 3.627,
+    "p95Ms": 4.044,
+    "p99Ms": 4.875,
+    "p999Ms": 28.239,
+    "maxMs": 57.530
+  },
+  "heap": {
+    "beforeBytes": 1393592,
+    "afterBytes": 9567936
+  },
+  "errorCount": 0
+},
+{
+  "workload": "INCR",
+  "totalRequests": 10000,
+  "concurrency": 50,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.6425,
+  "throughputRps": 15563.71,
+  "latency": {
+    "minMs": 0.064,
+    "p50Ms": 2.661,
+    "p90Ms": 4.489,
+    "p95Ms": 5.695,
+    "p99Ms": 7.742,
+    "p999Ms": 19.411,
+    "maxMs": 29.945
+  },
+  "heap": {
+    "beforeBytes": 1874168,
+    "afterBytes": 7277216
+  },
+  "errorCount": 0
+},
+{
+  "workload": "MIXED",
+  "totalRequests": 10000,
+  "concurrency": 50,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.5719,
+  "throughputRps": 17484.51,
+  "latency": {
+    "minMs": 0.060,
+    "p50Ms": 2.315,
+    "p90Ms": 3.651,
+    "p95Ms": 3.971,
+    "p99Ms": 5.838,
+    "p999Ms": 21.190,
+    "maxMs": 32.891
+  },
+  "heap": {
+    "beforeBytes": 1262088,
+    "afterBytes": 9444320
+  },
+  "errorCount": 0
+},
+{
+  "workload": "PING",
+  "totalRequests": 10000,
+  "concurrency": 100,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.5800,
+  "throughputRps": 17242.37,
+  "latency": {
+    "minMs": 0.093,
+    "p50Ms": 3.591,
+    "p90Ms": 5.763,
+    "p95Ms": 6.239,
+    "p99Ms": 10.830,
+    "p999Ms": 132.033,
+    "maxMs": 183.263
+  },
+  "heap": {
+    "beforeBytes": 1293152,
+    "afterBytes": 11986896
+  },
+  "errorCount": 0
+},
+{
+  "workload": "SET",
+  "totalRequests": 10000,
+  "concurrency": 100,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.5955,
+  "throughputRps": 16793.40,
+  "latency": {
+    "minMs": 0.071,
+    "p50Ms": 4.239,
+    "p90Ms": 6.220,
+    "p95Ms": 6.571,
+    "p99Ms": 11.258,
+    "p999Ms": 57.301,
+    "maxMs": 97.643
+  },
+  "heap": {
+    "beforeBytes": 1345232,
+    "afterBytes": 15239192
+  },
+  "errorCount": 0
+},
+{
+  "workload": "GET",
+  "totalRequests": 10000,
+  "concurrency": 100,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.6165,
+  "throughputRps": 16219.72,
+  "latency": {
+    "minMs": 0.059,
+    "p50Ms": 3.850,
+    "p90Ms": 5.680,
+    "p95Ms": 6.040,
+    "p99Ms": 9.721,
+    "p999Ms": 128.624,
+    "maxMs": 167.150
+  },
+  "heap": {
+    "beforeBytes": 1415424,
+    "afterBytes": 13465768
+  },
+  "errorCount": 0
+},
+{
+  "workload": "INCR",
+  "totalRequests": 10000,
+  "concurrency": 100,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.5897,
+  "throughputRps": 16957.11,
+  "latency": {
+    "minMs": 0.065,
+    "p50Ms": 3.896,
+    "p90Ms": 5.443,
+    "p95Ms": 5.775,
+    "p99Ms": 8.976,
+    "p999Ms": 137.515,
+    "maxMs": 180.300
+  },
+  "heap": {
+    "beforeBytes": 2914128,
+    "afterBytes": 12011280
+  },
+  "errorCount": 0
+},
+{
+  "workload": "MIXED",
+  "totalRequests": 10000,
+  "concurrency": 100,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.7547,
+  "throughputRps": 13250.71,
+  "latency": {
+    "minMs": 0.054,
+    "p50Ms": 4.094,
+    "p90Ms": 6.460,
+    "p95Ms": 7.437,
+    "p99Ms": 11.138,
+    "p999Ms": 131.344,
+    "maxMs": 138.581
+  },
+  "heap": {
+    "beforeBytes": 1281968,
+    "afterBytes": 13140776
+  },
+  "errorCount": 0
+},
+{
+  "workload": "SET",
+  "totalRequests": 20000,
+  "concurrency": 20,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.9903,
+  "throughputRps": 20196.79,
+  "latency": {
+    "minMs": 0.053,
+    "p50Ms": 0.822,
+    "p90Ms": 1.479,
+    "p95Ms": 1.721,
+    "p99Ms": 2.428,
+    "p999Ms": 4.502,
+    "maxMs": 5.519
+  },
+  "heap": {
+    "beforeBytes": 1282128,
+    "afterBytes": 4611416
+  },
+  "errorCount": 0
+},
+{
+  "workload": "GET",
+  "totalRequests": 20000,
+  "concurrency": 20,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 1.1025,
+  "throughputRps": 18140.48,
+  "latency": {
+    "minMs": 0.063,
+    "p50Ms": 0.883,
+    "p90Ms": 1.611,
+    "p95Ms": 1.808,
+    "p99Ms": 3.376,
+    "p999Ms": 9.987,
+    "maxMs": 10.487
+  },
+  "heap": {
+    "beforeBytes": 1282256,
+    "afterBytes": 4846776
+  },
+  "errorCount": 0
+},
+{
+  "workload": "SET",
+  "totalRequests": 20000,
+  "concurrency": 20,
+  "pipelineDepth": 4,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.8133,
+  "throughputRps": 24592.34,
+  "latency": {
+    "minMs": 0.037,
+    "p50Ms": 0.656,
+    "p90Ms": 1.104,
+    "p95Ms": 1.272,
+    "p99Ms": 1.501,
+    "p999Ms": 2.666,
+    "maxMs": 3.093
+  },
+  "heap": {
+    "beforeBytes": 1282384,
+    "afterBytes": 11753424
+  },
+  "errorCount": 0
+},
+{
+  "workload": "GET",
+  "totalRequests": 20000,
+  "concurrency": 20,
+  "pipelineDepth": 4,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.5519,
+  "throughputRps": 36236.12,
+  "latency": {
+    "minMs": 0.051,
+    "p50Ms": 0.494,
+    "p90Ms": 0.752,
+    "p95Ms": 0.885,
+    "p99Ms": 1.310,
+    "p999Ms": 3.316,
+    "maxMs": 5.115
+  },
+  "heap": {
+    "beforeBytes": 1282560,
+    "afterBytes": 5542952
+  },
+  "errorCount": 0
+},
+{
+  "workload": "SET",
+  "totalRequests": 19840,
+  "concurrency": 20,
+  "pipelineDepth": 16,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.5630,
+  "throughputRps": 35240.58,
+  "latency": {
+    "minMs": 0.055,
+    "p50Ms": 0.502,
+    "p90Ms": 0.663,
+    "p95Ms": 0.794,
+    "p99Ms": 1.038,
+    "p999Ms": 5.267,
+    "maxMs": 5.778
+  },
+  "heap": {
+    "beforeBytes": 1282688,
+    "afterBytes": 3811752
+  },
+  "errorCount": 0
+},
+{
+  "workload": "GET",
+  "totalRequests": 19840,
+  "concurrency": 20,
+  "pipelineDepth": 16,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.5549,
+  "throughputRps": 35755.33,
+  "latency": {
+    "minMs": 0.046,
+    "p50Ms": 0.485,
+    "p90Ms": 0.737,
+    "p95Ms": 0.842,
+    "p99Ms": 1.105,
+    "p999Ms": 5.583,
+    "maxMs": 5.951
+  },
+  "heap": {
+    "beforeBytes": 1282816,
+    "afterBytes": 9934608
+  },
+  "errorCount": 0
+},
+{
+  "workload": "SET",
+  "totalRequests": 19200,
+  "concurrency": 20,
+  "pipelineDepth": 64,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.4533,
+  "throughputRps": 42357.90,
+  "latency": {
+    "minMs": 0.018,
+    "p50Ms": 0.296,
+    "p90Ms": 0.408,
+    "p95Ms": 0.563,
+    "p99Ms": 3.000,
+    "p999Ms": 4.085,
+    "maxMs": 4.085
+  },
+  "heap": {
+    "beforeBytes": 1282944,
+    "afterBytes": 5176576
+  },
+  "errorCount": 0
+},
+{
+  "workload": "GET",
+  "totalRequests": 19200,
+  "concurrency": 20,
+  "pipelineDepth": 64,
+  "payloadBytes": 16,
+  "elapsedSeconds": 0.5130,
+  "throughputRps": 37425.41,
+  "latency": {
+    "minMs": 0.040,
+    "p50Ms": 0.312,
+    "p90Ms": 0.527,
+    "p95Ms": 0.661,
+    "p99Ms": 3.318,
+    "p999Ms": 4.322,
+    "maxMs": 4.322
+  },
+  "heap": {
+    "beforeBytes": 1283072,
+    "afterBytes": 4352656
+  },
+  "errorCount": 0
+},
+{
+  "workload": "LARGE_PAYLOAD",
+  "totalRequests": 10000,
+  "concurrency": 20,
+  "pipelineDepth": 1,
+  "payloadBytes": 1024,
+  "elapsedSeconds": 0.5844,
+  "throughputRps": 17110.55,
+  "latency": {
+    "minMs": 0.139,
+    "p50Ms": 0.985,
+    "p90Ms": 1.420,
+    "p95Ms": 1.637,
+    "p99Ms": 3.189,
+    "p999Ms": 8.279,
+    "maxMs": 52.073
+  },
+  "heap": {
+    "beforeBytes": 1283336,
+    "afterBytes": 4053720
+  },
+  "errorCount": 0
+},
+{
+  "workload": "TRANSACTION",
+  "totalRequests": 5000,
+  "concurrency": 10,
+  "pipelineDepth": 1,
+  "payloadBytes": 16,
+  "elapsedSeconds": 1.4409,
+  "throughputRps": 3470.01,
+  "latency": {
+    "minMs": 0.128,
+    "p50Ms": 1.693,
+    "p90Ms": 2.961,
+    "p95Ms": 4.422,
+    "p99Ms": 9.443,
+    "p999Ms": 437.659,
+    "maxMs": 449.830
+  },
+  "heap": {
+    "beforeBytes": 1283720,
+    "afterBytes": 7165088
+  },
+  "errorCount": 0
+}
+  ]
+}
