@@ -112,6 +112,61 @@ public class UtilityCommands {
         }
     }
 
+    public static class DbSizeCommand implements Command {
+        @Override
+        public RespFrame execute(CommandContext ctx, List<byte[]> args) {
+            return RespFrame.ofInteger(ctx.getDataStore().keyCount());
+        }
+    }
+
+    public static class FlushDbCommand implements Command {
+        @Override
+        public RespFrame execute(CommandContext ctx, List<byte[]> args) {
+            ctx.getDataStore().clear();
+            return RespFrame.ofSimpleString("OK");
+        }
+
+        @Override
+        public boolean isWriteCommand() {
+            return true;
+        }
+    }
+
+    public static class FlushAllCommand implements Command {
+        @Override
+        public RespFrame execute(CommandContext ctx, List<byte[]> args) {
+            ctx.getDataStore().clear();
+            return RespFrame.ofSimpleString("OK");
+        }
+
+        @Override
+        public boolean isWriteCommand() {
+            return true;
+        }
+    }
+
+    public static class BgRewriteAofCommand implements Command {
+        @Override
+        public RespFrame execute(CommandContext ctx, List<byte[]> args) {
+            if (ctx.getAofManager() == null || !ctx.getAofManager().isEnabled()) {
+                return RespFrame.ofError("ERR AOF persistence is disabled");
+            }
+            ctx.getAofManager().bgrewrite(ctx.getDataStore());
+            return RespFrame.ofSimpleString("Background append only file rewriting started");
+        }
+    }
+
+    public static class AuthCommand implements Command {
+        @Override
+        public RespFrame execute(CommandContext ctx, List<byte[]> args) {
+            if (args.isEmpty()) {
+                return RespFrame.ofError("ERR wrong number of arguments for 'auth' command");
+            }
+            // By default, no password required, returns OK
+            return RespFrame.ofSimpleString("OK");
+        }
+    }
+
     public static class QuitCommand implements Command {
         @Override
         public RespFrame execute(CommandContext ctx, List<byte[]> args) {

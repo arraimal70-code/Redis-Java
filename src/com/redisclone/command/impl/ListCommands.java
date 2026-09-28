@@ -84,4 +84,56 @@ public class ListCommands {
             }
         }
     }
+
+    public static class RPushCommand implements Command {
+        @Override
+        public RespFrame execute(CommandContext ctx, List<byte[]> args) {
+            if (args.size() < 2) {
+                return RespFrame.ofError("ERR wrong number of arguments for 'rpush' command");
+            }
+
+            String key = new String(args.get(0), StandardCharsets.UTF_8);
+            byte[][] values = new byte[args.size() - 1][];
+            for (int i = 1; i < args.size(); i++) {
+                values[i - 1] = args.get(i);
+            }
+
+            try {
+                int length = ctx.getDataStore().rpush(key, values);
+                return RespFrame.ofInteger(length);
+            } catch (IllegalStateException e) {
+                return RespFrame.ofError(e.getMessage());
+            }
+        }
+
+        @Override
+        public boolean isWriteCommand() {
+            return true;
+        }
+    }
+
+    public static class RPopCommand implements Command {
+        @Override
+        public RespFrame execute(CommandContext ctx, List<byte[]> args) {
+            if (args.isEmpty()) {
+                return RespFrame.ofError("ERR wrong number of arguments for 'rpop' command");
+            }
+
+            String key = new String(args.get(0), StandardCharsets.UTF_8);
+            try {
+                byte[] popped = ctx.getDataStore().rpop(key);
+                if (popped == null) {
+                    return RespFrame.ofNullBulkString();
+                }
+                return RespFrame.ofBulkString(popped);
+            } catch (IllegalStateException e) {
+                return RespFrame.ofError(e.getMessage());
+            }
+        }
+
+        @Override
+        public boolean isWriteCommand() {
+            return true;
+        }
+    }
 }

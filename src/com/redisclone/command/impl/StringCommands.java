@@ -5,7 +5,10 @@ import com.redisclone.command.CommandContext;
 import com.redisclone.resp.RespFrame;
 import com.redisclone.storage.RedisObject;
 
+import com.redisclone.storage.RedisType;
+
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -92,6 +95,46 @@ public class StringCommands {
         @Override
         public boolean isWriteCommand() {
             return true;
+        }
+    }
+
+    public static class MSetCommand implements Command {
+        @Override
+        public RespFrame execute(CommandContext ctx, List<byte[]> args) {
+            if (args.isEmpty() || args.size() % 2 != 0) {
+                return RespFrame.ofError("ERR wrong number of arguments for 'mset' command");
+            }
+            for (int i = 0; i < args.size(); i += 2) {
+                String key = new String(args.get(i), StandardCharsets.UTF_8);
+                byte[] val = args.get(i + 1);
+                ctx.getDataStore().set(key, RedisObject.ofString(val), null);
+            }
+            return RespFrame.ofSimpleString("OK");
+        }
+
+        @Override
+        public boolean isWriteCommand() {
+            return true;
+        }
+    }
+
+    public static class MGetCommand implements Command {
+        @Override
+        public RespFrame execute(CommandContext ctx, List<byte[]> args) {
+            if (args.isEmpty()) {
+                return RespFrame.ofError("ERR wrong number of arguments for 'mget' command");
+            }
+            List<RespFrame> elements = new ArrayList<>(args.size());
+            for (byte[] arg : args) {
+                String key = new String(arg, StandardCharsets.UTF_8);
+                RedisObject obj = ctx.getDataStore().get(key);
+                if (obj == null || obj.getType() != RedisType.STRING) {
+                    elements.add(RespFrame.ofNullBulkString());
+                } else {
+                    elements.add(RespFrame.ofBulkString(obj.asStringBytes()));
+                }
+            }
+            return RespFrame.ofArray(elements);
         }
     }
 }

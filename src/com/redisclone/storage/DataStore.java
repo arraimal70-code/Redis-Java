@@ -393,6 +393,42 @@ public class DataStore {
         return val;
     }
 
+    public int rpush(String key, byte[]... values) {
+        if (checkAndExpire(key)) {
+            db.remove(key);
+            expires.remove(key);
+        }
+
+        if (!db.containsKey(key)) {
+            ensureCapacity();
+        }
+
+        RedisObject obj = db.computeIfAbsent(key, k -> RedisObject.ofList());
+        Deque<byte[]> list = obj.asList();
+        for (byte[] val : values) {
+            list.addLast(val);
+        }
+
+        if (evictionPolicy != null) {
+            evictionPolicy.onKeyInsert(key);
+        }
+        bumpKeyVersion(key);
+        return list.size();
+    }
+
+    public byte[] rpop(String key) {
+        if (checkAndExpire(key)) return null;
+        RedisObject obj = db.get(key);
+        if (obj == null) return null;
+        Deque<byte[]> list = obj.asList();
+        byte[] val = list.pollLast();
+        if (evictionPolicy != null) {
+            evictionPolicy.onKeyAccess(key);
+        }
+        bumpKeyVersion(key);
+        return val;
+    }
+
     // --- Inspection, Telemetry & Persistence Helpers ---
 
     public int keyCount() {

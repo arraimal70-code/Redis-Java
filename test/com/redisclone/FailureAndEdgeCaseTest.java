@@ -53,6 +53,8 @@ public class FailureAndEdgeCaseTest {
         testHighConcurrencyContention();
         testSlowClientAndBufferLimits();
         testTelemetryAndInfoCommand();
+        testAofRewriteCompaction();
+        testBatchAndUtilityCommands();
 
         System.out.println("=================================================");
         System.out.println(" ALL FAILURE TESTS PASSED: " + passedTests + " / " + totalTests);
@@ -295,6 +297,111 @@ public class FailureAndEdgeCaseTest {
             assertTrue(infoOutput.contains("uptime_in_seconds:"), "INFO contains uptime_in_seconds");
             assertTrue(ServerMetrics.getInstance().getKeyspaceHits() >= 1, "Metrics recorded at least 1 keyspace hit");
             assertTrue(ServerMetrics.getInstance().getKeyspaceMisses() >= 1, "Metrics recorded at least 1 keyspace miss");
+        } finally {
+            server.stop();
+        }
+    }
+
+    // --- 7. AOF LOG COMPACTION (BGREWRITEAOF) ---
+    private static void testAofRewriteCompaction() throws Exception {
+        System.out.println("\n--- Testing AOF Log Compaction (BGREWRITEAOF) ---");
+        Path testDir = Path.of("test_data");
+        Files.createDirectories(testDir);
+        File aofFile = testDir.resolve("compaction_test.aof").toFile();
+        if (aofFile.exists()) aofFile.delete();
+
+        AofManager aof = new AofManager(aofFile.getAbsolutePath(), AofManager.FsyncPolicy.ALWAYS, true);
+        aof.start();
+
+        DataStore ds = new DataStore();
+        ds.set("compact:k1", RedisObject.ofString("val1"), null);
+        ds.set("compact:k2", RedisObject.ofString("val2"), null);
+        ds.hset("compact:user", "name", "Alice".getBytes(StandardCharsets.UTF_8));
+        ds.lpush("compact:tasks", "t1".getBytes(StandardCharsets.UTF_8), "t2".getBytes(StandardCharsets.UTF_8));
+
+        boolean rewritten = aof.rewrite(ds);
+        assertTrue(rewritten, "AOF rewrite completed successfully");
+        assertTrue(aofFile.exists() && aofFile.length() > 0, "Compacted AOF file exists and has non-zero size");
+
+        // Replay compacted AOF into fresh DataStore
+        DataStore replayedDs = new DataStore();
+        com.redisclone.command.CommandRegistry registry = new com.redisclone.command.CommandRegistry(
+                replayedDs, null, aof, null, null, null, 6379
+        );
+        int replayedCount = aof.replay(registry);
+        assertTrue(replayedCount >= 4, "Compacted AOF replayed all 4 records");
+        assertEquals("val1", new String(replayedDs.get("compact:k1").asStringBytes(), StandardCharsets.UTF_8), "Key1 restored correctly from compacted AOF");
+        assertEquals("val2", new String(replayedDs.get("compact:k2").asStringBytes(), StandardCharsets.UTF_8), "Key2 restored correctly from compacted AOF");
+        assertEquals("Alice", new String(replayedDs.hget("compact:user", "name"), StandardCharsets.UTF_8), "Hash field restored from compacted AOF");
+        assertEquals(2, replayedDs.get("compact:tasks").asList().size(), "List elements restored from compacted AOF");
+
+        aof.close();
+    }
+
+    // --- 8. BATCH (MSET/MGET) & UTILITY (DBSIZE/FLUSHDB/AUTH) ---
+    private static void testBatchAndUtilityCommands() throws Exception {
+        System.out.println("\n--- Testing Batch (MSET/MGET) and Utility Commands ---");
+        int port = 6398;
+        ServerConfig config = new ServerConfig();
+        config.setPort(port);
+        config.setAofEnabled(false);
+        config.setRdbEnabled(false);
+
+        RedisServer server = new RedisServer(config);
+        server.start();
+        Thread.sleep(200);
+
+        try (Socket socket = new Socket("127.0.0.1", port);
+             OutputStream out = socket.getOutputStream();
+             InputStream in = socket.getInputStream()) {
+
+            byte[] buf = new byte[1024];
+
+            // 1. MSET
+            out.write("*5\r\n$4\r\nMSET\r\n$2\r\nm1\r\n$2\r\nv1\r\n$2\r\nm2\r\n$2\r\nv2\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            int read = in.read(buf);
+            String resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals("+OK\r\n", resp, "MSET commits multiple keys atomically");
+
+            // 2. DBSIZE
+            out.write("*1\r\n$6\r\nDBSIZE\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":2\r\n", resp, "DBSIZE accurately reports 2 keys");
+
+            // 3. MGET
+            out.write("*4\r\n$4\r\nMGET\r\n$2\r\nm1\r\n$2\r\nm2\r\n$6\r\nabsent\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertTrue(resp.startsWith("*3\r\n"), "MGET returns 3-element array");
+            assertTrue(resp.contains("$2\r\nv1\r\n"), "MGET contains v1");
+            assertTrue(resp.contains("$2\r\nv2\r\n"), "MGET contains v2");
+            assertTrue(resp.contains("$-1\r\n"), "MGET contains nil for absent key");
+
+            // 4. AUTH command
+            out.write("*2\r\n$4\r\nAUTH\r\n$6\r\nsecret\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals("+OK\r\n", resp, "AUTH returns OK");
+
+            // 5. FLUSHDB
+            out.write("*1\r\n$7\r\nFLUSHDB\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals("+OK\r\n", resp, "FLUSHDB succeeds with OK");
+
+            // 6. DBSIZE after flush
+            out.write("*1\r\n$6\r\nDBSIZE\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":0\r\n", resp, "DBSIZE reports 0 after FLUSHDB");
+
         } finally {
             server.stop();
         }

@@ -11,7 +11,7 @@
 > *(Exact length: 148 characters)*
 
 ### 1.2 Graduate Admissions Statement of Purpose (SOP) Blurb (CMU / MIT / Berkeley EECS)
-> *"To explore the fundamental mechanics of high-performance distributed systems, I engineered an experimental, zero-dependency in-memory key-value database in Core Java 21 conforming strictly to the RESP specification. Operating without high-level networking abstractions like Netty, I designed a single-threaded Java NIO Selector reactor, a zero-allocation streaming byte buffer parser with 64-bit integer overflow protection, and a dual persistence engine with truncated AOF crash recovery. Benchmarking across 200,000+ requests demonstrated peak throughput of 42,357 requests/second with sub-millisecond median latencies (0.059 ms p50). I then evaluated this engine as a semantic prompt cache for AI inference gateways, achieving a 400.8x latency reduction and 91.7% cache hit ratio across simulated LLM workloads. The entire architecture is validated through 105 automated unit and chaos tests."*
+> *"To explore the fundamental mechanics of high-performance distributed systems, I engineered an experimental, zero-dependency in-memory key-value database in Core Java 21 conforming strictly to the RESP specification. Operating without high-level networking abstractions like Netty, I designed a single-threaded Java NIO Selector reactor, a zero-allocation streaming byte buffer parser with 64-bit integer overflow protection, an atomic log compaction engine (BGREWRITEAOF), and a dual persistence engine with truncated AOF crash recovery. Benchmarking across 200,000+ requests demonstrated peak throughput of 42,357 requests/second with sub-millisecond median latencies (0.059 ms p50) and 35.3 ns/op parsing speeds. I then evaluated this engine as a semantic prompt cache for AI inference gateways, achieving a 400.8x latency reduction and 91.7% cache hit ratio across simulated LLM workloads. The entire architecture is validated through 121 automated unit and chaos tests alongside an interactive architecture lab."*
 
 ---
 
@@ -21,13 +21,13 @@
 *Custom Redis Key-Value Database & Distributed Caching Engine (Core Java 21)*
 
 - **Core Reactor Architecture:** Engineered a high-throughput, zero-dependency in-memory key-value database in Java 21 using `java.nio` Selector multiplexing and non-blocking direct `ByteBuffers`, achieving **42,357 requests/sec** under pipelined workloads and **22,125 requests/sec** unpipelined with **59 µs median latency**.
-- **Hardened Wire Protocol Parser:** Built a zero-allocation, streaming state-machine RESP2 parser with 64-bit integer overflow checks, frame boundary caps (512MB strings, 1M array elements), and packet fragmentation handling without heap thrashing.
+- **Hardened Wire Protocol Parser:** Built a zero-allocation, streaming state-machine RESP2 parser with 64-bit integer overflow checks, frame boundary caps (512MB strings, 1M array elements), and packet fragmentation handling without heap thrashing, benchmarking at **35.3 ns/op (3.31x faster than JDK)**.
 - **ACID Transactions & Optimistic Locking:** Implemented `MULTI`/`EXEC` atomic command queuing and optimistic concurrency control (CAS) via `WATCH` with key version tracking.
 - **Cache Eviction & Expiration:** Architected dual-mode TTL expiration (lazy passive lookup + 10Hz probabilistic active sweep with $O(k)$ sampling) alongside an approximated LRU cache eviction policy.
 - **Distributed Replication & Cluster Routing:** Developed Master-Replica stream replication using a circular backlog buffer, 64-bit offsets, and `PSYNC` handshakes; implemented 16,384-slot cluster sharding using CRC16 and client-side `-MOVED` redirection.
-- **Dual Persistence Subsystems:** Engineered an Append-Only File (AOF) with configurable fsync policies (`ALWAYS`, `EVERYSEC`) and crash-resilient truncated log recovery, coupled with binary point-in-time snapshotting (RDB).
+- **Dual Persistence & Log Compaction Subsystems:** Engineered an Append-Only File (AOF) with configurable fsync policies (`ALWAYS`, `EVERYSEC`), atomic log compaction (`BGREWRITEAOF`), and crash-resilient truncated log recovery, coupled with binary point-in-time snapshotting (RDB).
 - **Real-World AI Application:** Built a semantic prompt cache for AI inference gateways, achieving a **400.8x latency reduction** (0.48ms hit vs 190.89ms miss) and saving 10.50 seconds of GPU compute in a 60-query benchmark.
-- **Engineering Rigor & Verification:** Validated system resilience through **105 automated unit and chaos test assertions**, covering corrupted log recovery, protocol injection, buffer flooding, and high-concurrency race conditions.
+- **Engineering Rigor & Verification:** Validated system resilience through **121 automated unit and chaos test assertions**, covering corrupted log recovery, protocol injection, buffer flooding, batch commands (`MSET`/`MGET`), `DBSIZE`/`FLUSHDB`, and 50-thread atomic concurrency contention. Built an interactive browser-based systems architecture lab for visual inspection.
 
 ---
 

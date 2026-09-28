@@ -3,7 +3,7 @@
 [![CI Pipeline](https://github.com/arraimal70-code/Redis-Java/actions/workflows/ci.yml/badge.svg)](https://github.com/arraimal70-code/Redis-Java/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Java 21+](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://openjdk.org/projects/jdk/21/)
-[![Tests: 105 Passed](https://img.shields.io/badge/Tests-105%20Passed-brightgreen.svg)](#test-suite--chaos-resilience)
+[![Tests: 121 Passed](https://img.shields.io/badge/Tests-121%20Passed-brightgreen.svg)](#test-suite--chaos-resilience)
 
 An experimental, high-performance in-memory key-value data store and caching engine engineered from the ground up in **Core Java 21**. 
 
@@ -17,6 +17,7 @@ For comprehensive systems engineering analyses, architectural designs, and inter
 
 | Document | Description |
 | :--- | :--- |
+| [`docs/interactive-architecture.html`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/interactive-architecture.html) | **Interactive Architecture Lab:** Browser-based diagnostic workbench with live NIO reactor simulator, 16,384-slot CRC16 ring visualizer, replication backlog inspector, and 10Hz eviction simulator. |
 | [`docs/BENCHMARKING.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/BENCHMARKING.md) | Nanosecond-resolution empirical measurements, concurrency sweeps (1-100), pipelining depth sweeps (1-64), and latency histograms. |
 | [`docs/REAL_WORLD_IMPACT.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/REAL_WORLD_IMPACT.md) | Empirical evaluation of the engine as a Semantic Prompt Cache for AI inference gateways (400.8x speedup). |
 | [`docs/FAILURE_MODES.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/FAILURE_MODES.md) | Chaos test suite results: corrupted AOF recovery, RDB header rejection, 64-bit integer overflow, and buffer flood limits. |
@@ -115,16 +116,31 @@ graph TD
 
 | Category | Commands Supported |
 | :--- | :--- |
-| **Strings** | `SET` (with `EX` / `PX` options), `GET`, `INCR` |
+| **Strings** | `SET` (with `EX` / `PX` options), `GET`, `INCR`, `MSET`, `MGET` |
 | **Keys & Expiry** | `DEL`, `EXPIRE`, `TTL`, `EXISTS` |
 | **Hashes** | `HSET`, `HGET`, `HGETALL` |
-| **Lists** | `LPUSH`, `LPOP`, `LLEN` |
+| **Lists** | `LPUSH`, `RPUSH`, `LPOP`, `RPOP`, `LLEN` |
 | **Transactions** | `MULTI`, `EXEC`, `DISCARD`, `WATCH`, `UNWATCH` |
 | **Pub/Sub** | `PUBLISH`, `SUBSCRIBE`, `UNSUBSCRIBE` |
 | **Replication** | `REPLICAOF`, `SLAVEOF`, `PSYNC`, `REPLCONF` |
 | **Cluster** | `CLUSTER KEYSLOT`, `CLUSTER SLOTS`, `CLUSTER NODES` |
-| **Persistence** | `SAVE`, `BGSAVE` |
-| **Operational & Telemetry** | `PING`, `ECHO`, `INFO`, `COMMAND DOCS`, `QUIT` |
+| **Persistence** | `SAVE`, `BGSAVE`, `BGREWRITEAOF` |
+| **Operational & Telemetry** | `PING`, `ECHO`, `INFO`, `DBSIZE`, `FLUSHDB`, `FLUSHALL`, `AUTH`, `COMMAND DOCS`, `QUIT` |
+
+---
+
+## Low-Level Component Microbenchmarks
+
+Captured via `com.redisclone.benchmark.MicrobenchmarkSuite` on OpenJDK 21 Tier 4 C2 JIT compiler (nanosecond resolution across 200,000+ operations):
+
+- **Zero-Allocation RESP Numeric Parsing:**
+  - Custom direct ASCII parser: **35.3 ns/op** (28,340,253 ops/sec) with **0 byte heap allocations**.
+  - JDK standard `Long.parseLong(new String(bytes))`: **116.9 ns/op** (8,551,211 ops/sec).
+  - **Result: 3.31x speedup** with zero garbage collection pressure on the JVM Young Gen.
+- **CRC16-CCITT Cluster Slot Routing:** **125.81 ns/op** (~7.95 million slots calculated/sec).
+- **DataStore In-Memory Memory Access:**
+  - `GET` lookup latency: **721.75 ns/op** (~1.39 million reads/sec).
+  - `SET` mutation latency: **731.92 ns/op** (~1.37 million writes/sec).
 
 ---
 
@@ -176,13 +192,17 @@ A production-ready reference gateway is provided in [`examples/real-world/AiInfe
 
 ## Test Suite & Chaos Resilience
 
-The repository maintains two independent test suites totaling **105 automated test assertions**:
+The repository maintains two comprehensive test suites totaling **121 automated test assertions**:
 1. **Core Integration Suite (`RedisServerTest.java`):** 82 assertions testing data types, transactions, replication handshakes, cluster routing, and persistence reload.
-2. **Failure & Chaos Suite (`FailureAndEdgeCaseTest.java`):** 23 assertions verifying recovery from corrupted AOF logs, invalid RDB headers, 64-bit integer overflows, bounded buffer enforcement, and 50-thread atomic concurrency contention.
+2. **Failure & Chaos Suite (`FailureAndEdgeCaseTest.java`):** 39 assertions verifying recovery from corrupted AOF logs, AOF compaction (`BGREWRITEAOF`) replay, invalid RDB headers, 64-bit integer overflows, bounded buffer enforcement, batch commands (`MSET`/`MGET`), `DBSIZE`, `FLUSHDB`, `AUTH`, and 50-thread atomic concurrency contention.
 
 ```cmd
 # Run complete test suite (Windows)
 test.bat
+
+# Run multi-node replication & chaos fault-injection test (Windows / Linux)
+scripts\chaos_cluster_test.bat
+./scripts/chaos_cluster_test.sh
 
 # Run complete test suite (Linux / Mac)
 javac -d bin -cp "bin" $(find src test -name "*.java")

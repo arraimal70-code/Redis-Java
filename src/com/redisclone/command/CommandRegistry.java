@@ -60,6 +60,8 @@ public class CommandRegistry {
         commands.put("SET", new StringCommands.SetCommand());
         commands.put("GET", new StringCommands.GetCommand());
         commands.put("INCR", new StringCommands.IncrCommand());
+        commands.put("MSET", new StringCommands.MSetCommand());
+        commands.put("MGET", new StringCommands.MGetCommand());
 
         // Key commands
         commands.put("DEL", new KeyCommands.DelCommand());
@@ -74,7 +76,9 @@ public class CommandRegistry {
 
         // List commands
         commands.put("LPUSH", new ListCommands.LPushCommand());
+        commands.put("RPUSH", new ListCommands.RPushCommand());
         commands.put("LPOP", new ListCommands.LPopCommand());
+        commands.put("RPOP", new ListCommands.RPopCommand());
         commands.put("LLEN", new ListCommands.LLenCommand());
 
         // Pub/Sub commands
@@ -103,8 +107,13 @@ public class CommandRegistry {
         commands.put("ECHO", new UtilityCommands.EchoCommand());
         commands.put("COMMAND", new UtilityCommands.CommandInfoCommand());
         commands.put("INFO", new UtilityCommands.InfoCommand());
+        commands.put("DBSIZE", new UtilityCommands.DbSizeCommand());
+        commands.put("FLUSHDB", new UtilityCommands.FlushDbCommand());
+        commands.put("FLUSHALL", new UtilityCommands.FlushAllCommand());
         commands.put("SAVE", new UtilityCommands.SaveCommand());
         commands.put("BGSAVE", new UtilityCommands.BgSaveCommand());
+        commands.put("BGREWRITEAOF", new UtilityCommands.BgRewriteAofCommand());
+        commands.put("AUTH", new UtilityCommands.AuthCommand());
         commands.put("QUIT", new UtilityCommands.QuitCommand());
     }
 

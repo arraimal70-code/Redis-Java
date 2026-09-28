@@ -32,6 +32,7 @@ jobs:
           javac -d bin -cp "bin" @test_sources.txt
           java -cp "bin" com.redisclone.RedisServerTest
           java -cp "bin" com.redisclone.FailureAndEdgeCaseTest
+          java -cp "bin" com.redisclone.benchmark.MicrobenchmarkSuite
 
       - name: Run Benchmark Sanity Check
         run: |
