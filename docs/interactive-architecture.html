@@ -276,7 +276,7 @@
     <h1>
       Redis-Java 21 Architecture Lab
       <span class="badge">Core Java 21</span>
-      <span class="badge badge-green">121/121 Tests Passed</span>
+      <span class="badge badge-green">140/140 Tests Passed</span>
       <span class="badge">42,357 Peak RPS</span>
     </h1>
     <p style="color: var(--text-secondary); margin-top: 6px; font-size: 14px;">
@@ -289,6 +289,7 @@
     <button class="tab-btn" onclick="switchTab('cluster')">🌐 Cluster Hash Slot Ring</button>
     <button class="tab-btn" onclick="switchTab('replication')">🔄 Replication & Ring Backlog</button>
     <button class="tab-btn" onclick="switchTab('eviction')">⏱️ Active TTL Eviction (10Hz)</button>
+    <button class="tab-btn" onclick="switchTab('streams-hll')">🌊 Streams & HyperLogLog</button>
     <button class="tab-btn" onclick="switchTab('benchmarks')">📊 Empirical Benchmarks</button>
   </nav>
 
@@ -549,6 +550,54 @@ Client channel readable. Ready to invoke readIntoBuffer()...
     </div>
   </section>
 
+  <!-- TAB 6: STREAMS & PROBABILISTIC HYPERLOGLOG -->
+  <section id="tab-streams-hll" class="tab-content">
+    <div class="grid-2">
+      <!-- Streams Simulator -->
+      <div class="card">
+        <h2>🌊 Redis Streams Append-Only Log (XADD / XRANGE)</h2>
+        <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+          Append event records with monotonic timestamp-sequence IDs (&lt;msTime&gt;-&lt;seq&gt;) and query continuous event ranges.
+        </p>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <input type="text" id="stream-field" value="sensor_temp" placeholder="Field" style="background: var(--bg-primary); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; width: 120px; font-family: var(--font-mono);">
+          <input type="text" id="stream-val" value="23.4C" placeholder="Value" style="background: var(--bg-primary); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; width: 100px; font-family: var(--font-mono);">
+          <button class="btn" onclick="appendStreamEntry()">Append (XADD * )</button>
+          <button class="btn btn-secondary" onclick="clearStreamLog()">Clear</button>
+        </div>
+
+        <div id="stream-entries-log" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; font-family: var(--font-mono); font-size: 12px; max-height: 250px; overflow-y: auto; color: var(--accent-cyan);">
+          [Stream: events] Log initialized. Ready for incoming XADD mutations.
+        </div>
+      </div>
+
+      <!-- HyperLogLog Simulator -->
+      <div class="card">
+        <h2>🎲 HyperLogLog Cardinality Estimator (PFADD / PFCOUNT)</h2>
+        <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+          Flajolet et al. 64-register probabilistic counter. O(1) memory (64 bytes) estimating distinct element cardinality.
+        </p>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <input type="text" id="hll-input" value="user_alice" placeholder="Element string" style="background: var(--bg-primary); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; flex: 1; font-family: var(--font-mono);">
+          <button class="btn" onclick="addHllElement()">Add (PFADD)</button>
+          <button class="btn btn-secondary" onclick="simulateHllBatch(50)">+50 Unique</button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px;">
+          <span>Unique Added: <strong id="hll-exact-count" style="color: var(--accent-green);">0</strong></span>
+          <span>Estimated (PFCOUNT): <strong id="hll-est-count" style="color: var(--accent-cyan);">0</strong></span>
+          <span>Registers Non-Zero: <strong id="hll-nonzero-count" style="color: var(--accent-purple);">0 / 64</strong></span>
+        </div>
+
+        <div id="hll-registers-grid" style="display: grid; grid-template-columns: repeat(16, 1fr); gap: 4px; background: var(--bg-primary); padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); max-height: 120px; overflow-y: auto;">
+          <!-- 64 registers -->
+        </div>
+      </div>
+    </div>
+  </section>
+
   <script>
     function switchTab(tabId) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -562,6 +611,7 @@ Client channel readable. Ready to invoke readIntoBuffer()...
       if (tabId === 'cluster') drawClusterRing();
       if (tabId === 'replication') drawBacklogRing();
       if (tabId === 'eviction') initEvictionGrid();
+      if (tabId === 'streams-hll') initHllGrid();
     }
 
     // --- Reactor Simulator ---
@@ -779,12 +829,137 @@ Client channel readable. Ready to invoke readIntoBuffer()...
       document.getElementById('eviction-log').innerText = '[EvictionEngine] Pool reset. 50 candidate keys regenerated.';
     }
 
+    // --- Redis Streams Simulator ---
+    let streamSeq = 0;
+    let streamCount = 0;
+    function appendStreamEntry() {
+      const field = document.getElementById('stream-field').value.trim() || 'sensor';
+      const val = document.getElementById('stream-val').value.trim() || '20.0';
+      const now = Date.now();
+      const id = `${now}-${streamSeq++}`;
+      streamCount++;
+
+      const log = document.getElementById('stream-entries-log');
+      const entryEl = document.createElement('div');
+      entryEl.style.padding = '4px 0';
+      entryEl.style.borderBottom = '1px solid #30363d';
+      entryEl.innerHTML = `<span style="color: var(--accent-green); font-weight: 700;">${streamCount}) "${id}"</span> &rarr; 1) "${field}" 2) "${val}"`;
+      log.appendChild(entryEl);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function clearStreamLog() {
+      streamCount = 0;
+      streamSeq = 0;
+      document.getElementById('stream-entries-log').innerHTML = '[Stream: events] Log cleared. Ready for incoming XADD mutations.';
+    }
+
+    // --- HyperLogLog Simulator ---
+    const HLL_M = 64;
+    let hllRegisters = new Uint8Array(HLL_M);
+    let hllExactSet = new Set();
+
+    function initHllGrid() {
+      const grid = document.getElementById('hll-registers-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      for (let i = 0; i < HLL_M; i++) {
+        const cell = document.createElement('div');
+        cell.id = 'hll-reg-' + i;
+        cell.style.textAlign = 'center';
+        cell.style.padding = '4px 2px';
+        cell.style.fontSize = '10px';
+        cell.style.fontFamily = 'var(--font-mono)';
+        cell.style.borderRadius = '3px';
+        cell.style.background = '#161b22';
+        cell.style.border = '1px solid #30363d';
+        cell.innerText = '0';
+        grid.appendChild(cell);
+      }
+    }
+
+    function simpleHash64(str) {
+      let h1 = 0xdeadbeef ^ str.length;
+      let h2 = 0x41c64e6d ^ str.length;
+      for (let i = 0; i < str.length; i++) {
+        let ch = str.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+      }
+      h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+      h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+      return Math.abs(h1);
+    }
+
+    function addHllElement() {
+      const input = document.getElementById('hll-input');
+      const val = input.value.trim();
+      if (!val) return;
+      hllExactSet.add(val);
+      processHllAdd(val);
+      input.value = 'user_' + Math.random().toString(36).substring(7);
+      updateHllUI();
+    }
+
+    function simulateHllBatch(count) {
+      for (let i = 0; i < count; i++) {
+        const item = 'batch_user_' + Math.random().toString(36).substring(2, 9);
+        hllExactSet.add(item);
+        processHllAdd(item);
+      }
+      updateHllUI();
+    }
+
+    function processHllAdd(str) {
+      const hash = simpleHash64(str);
+      const regIdx = hash % HLL_M;
+      let w = Math.floor(hash / HLL_M);
+      let zeros = 1;
+      while ((w & 1) === 0 && zeros < 32) {
+        zeros++;
+        w >>>= 1;
+      }
+      if (zeros > hllRegisters[regIdx]) {
+        hllRegisters[regIdx] = zeros;
+      }
+    }
+
+    function updateHllUI() {
+      let sum = 0;
+      let zeroCount = 0;
+      let nonZero = 0;
+      for (let i = 0; i < HLL_M; i++) {
+        const val = hllRegisters[i];
+        sum += 1 / Math.pow(2, val);
+        if (val === 0) zeroCount++;
+        else nonZero++;
+        const cell = document.getElementById('hll-reg-' + i);
+        if (cell) {
+          cell.innerText = val;
+          cell.style.background = val > 0 ? 'rgba(88, 166, 255, ' + Math.min(1, 0.2 + val * 0.15) + ')' : '#161b22';
+          cell.style.borderColor = val > 0 ? 'var(--accent-cyan)' : '#30363d';
+        }
+      }
+
+      const alpha = 0.709;
+      let rawEst = alpha * HLL_M * HLL_M / sum;
+      let estimate = rawEst;
+      if (rawEst <= 2.5 * HLL_M && zeroCount > 0) {
+        estimate = HLL_M * Math.log(HLL_M / zeroCount);
+      }
+
+      document.getElementById('hll-exact-count').innerText = hllExactSet.size;
+      document.getElementById('hll-est-count').innerText = Math.round(estimate);
+      document.getElementById('hll-nonzero-count').innerText = `${nonZero} / 64`;
+    }
+
     // Initialize on load
     window.addEventListener('DOMContentLoaded', () => {
       calculateSlot();
       drawClusterRing();
       drawBacklogRing();
       initEvictionGrid();
+      initHllGrid();
     });
   </script>
 </body>

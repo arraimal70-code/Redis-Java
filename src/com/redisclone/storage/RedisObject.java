@@ -83,4 +83,17 @@ public class RedisObject {
         }
         return (Map<String, byte[]>) value;
     }
+
+    // --- Helpers for STREAM ---
+    public static RedisObject ofStream() {
+        return new RedisObject(RedisType.STREAM, new ArrayList<StreamEntry>());
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<StreamEntry> asStream() {
+        if (type != RedisType.STREAM) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        return (List<StreamEntry>) value;
+    }
 }

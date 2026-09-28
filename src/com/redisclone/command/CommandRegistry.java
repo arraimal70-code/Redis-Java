@@ -115,6 +115,20 @@ public class CommandRegistry {
         commands.put("BGREWRITEAOF", new UtilityCommands.BgRewriteAofCommand());
         commands.put("AUTH", new UtilityCommands.AuthCommand());
         commands.put("QUIT", new UtilityCommands.QuitCommand());
+
+        // Bitmap commands
+        commands.put("SETBIT", new BitmapCommands.SetBitCommand());
+        commands.put("GETBIT", new BitmapCommands.GetBitCommand());
+        commands.put("BITCOUNT", new BitmapCommands.BitCountCommand());
+
+        // HyperLogLog commands
+        commands.put("PFADD", new HyperLogLogCommands.PfAddCommand());
+        commands.put("PFCOUNT", new HyperLogLogCommands.PfCountCommand());
+
+        // Stream commands
+        commands.put("XADD", new StreamCommands.XAddCommand());
+        commands.put("XLEN", new StreamCommands.XLenCommand());
+        commands.put("XRANGE", new StreamCommands.XRangeCommand());
     }
 
     public void registerCommand(String name, Command command) {

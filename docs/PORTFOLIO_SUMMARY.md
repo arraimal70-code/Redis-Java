@@ -26,8 +26,9 @@
 - **Cache Eviction & Expiration:** Architected dual-mode TTL expiration (lazy passive lookup + 10Hz probabilistic active sweep with $O(k)$ sampling) alongside an approximated LRU cache eviction policy.
 - **Distributed Replication & Cluster Routing:** Developed Master-Replica stream replication using a circular backlog buffer, 64-bit offsets, and `PSYNC` handshakes; implemented 16,384-slot cluster sharding using CRC16 and client-side `-MOVED` redirection.
 - **Dual Persistence & Log Compaction Subsystems:** Engineered an Append-Only File (AOF) with configurable fsync policies (`ALWAYS`, `EVERYSEC`), atomic log compaction (`BGREWRITEAOF`), and crash-resilient truncated log recovery, coupled with binary point-in-time snapshotting (RDB).
-- **Real-World AI Application:** Built a semantic prompt cache for AI inference gateways, achieving a **400.8x latency reduction** (0.48ms hit vs 190.89ms miss) and saving 10.50 seconds of GPU compute in a 60-query benchmark.
-- **Engineering Rigor & Verification:** Validated system resilience through **121 automated unit and chaos test assertions**, covering corrupted log recovery, protocol injection, buffer flooding, batch commands (`MSET`/`MGET`), `DBSIZE`/`FLUSHDB`, and 50-thread atomic concurrency contention. Built an interactive browser-based systems architecture lab for visual inspection.
+- **Advanced Data Primitives:** Implemented append-only Redis Streams (`XADD`, `XLEN`, `XRANGE`), 64-register HyperLogLog probabilistic cardinality estimation (`PFADD`, `PFCOUNT`), and high-efficiency Bitmaps (`SETBIT`, `GETBIT`, `BITCOUNT`).
+- **Real-World Applications:** Built a semantic prompt cache for AI inference gateways (400.8x speedup) and an atomic sliding-window distributed rate limiter protecting API gateways.
+- **Engineering Rigor & Verification:** Validated system resilience through **140 automated unit and chaos test assertions**, covering corrupted log recovery, protocol injection, buffer flooding, batch commands (`MSET`/`MGET`), `DBSIZE`/`FLUSHDB`, Streams, HLL, and 50-thread atomic concurrency contention. Built an interactive browser-based systems architecture lab for visual inspection.
 
 ---
 
@@ -39,5 +40,7 @@
 | **Networking** | Stream-oriented framing, TCP segmentation recovery, disabling Nagle's algorithm (`TCP_NODELAY`), socket reuse (`SO_REUSEADDR`), RESP wire protocol. | `RespParser.java`, `ClientConnection.java` |
 | **Concurrency** | Single-reactor lock-free execution model, eliminating context-switching overhead, atomic CAS versioning (`AtomicLong`), thread-safe ring buffers. | `TransactionContext.java`, `ReplicationBacklog.java` |
 | **Databases** | In-memory key-value store, typed object layout, passive/active TTL eviction, write-ahead logging (WAL/AOF), point-in-time binary snapshotting (RDB). | `DataStore.java`, `RdbManager.java`, `EvictionEngine.java` |
+| **Probabilistic Algorithms** | Flajolet 64-register HyperLogLog with 64-bit hashing, harmonic mean estimation, small-range linear counting correction, Bitmaps. | `HyperLogLog.java`, `BitmapCommands.java` |
+| **Event Streaming** | Monotonic append-only log with sub-millisecond sequencing, continuous range queries (`XRANGE`), and payload tuple preservation. | `StreamEntry.java`, `StreamCommands.java` |
 | **Distributed Systems** | Active-passive replication, replication backlog ring buffer, offset synchronization, `PSYNC` protocol handshake, consistent hashing & slot sharding. | `ReplicationManager.java`, `ClusterSlotRouter.java`, `Crc16.java` |
 | **Software Engineering** | Strategy pattern (`EvictionPolicy`), Command pattern (`CommandRegistry`), immutable sealed hierarchy (`RespFrame`), Docker containerization, CI/CD. | `LruEvictionPolicy.java`, `Dockerfile`, `ci.yml` |

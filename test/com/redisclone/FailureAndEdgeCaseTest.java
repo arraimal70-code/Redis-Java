@@ -55,6 +55,7 @@ public class FailureAndEdgeCaseTest {
         testTelemetryAndInfoCommand();
         testAofRewriteCompaction();
         testBatchAndUtilityCommands();
+        testBitmapsHyperLogLogAndStreams();
 
         System.out.println("=================================================");
         System.out.println(" ALL FAILURE TESTS PASSED: " + passedTests + " / " + totalTests);
@@ -401,6 +402,132 @@ public class FailureAndEdgeCaseTest {
             read = in.read(buf);
             resp = new String(buf, 0, read, StandardCharsets.UTF_8);
             assertEquals(":0\r\n", resp, "DBSIZE reports 0 after FLUSHDB");
+
+        } finally {
+            server.stop();
+        }
+    }
+
+    private static void testBitmapsHyperLogLogAndStreams() throws Exception {
+        System.out.println("\n--- Testing Bitmaps, HyperLogLog, and Redis Streams ---");
+        int port = 6399;
+        ServerConfig config = new ServerConfig();
+        config.setPort(port);
+        config.setAofEnabled(false);
+        config.setRdbEnabled(false);
+
+        RedisServer server = new RedisServer(config);
+        server.start();
+        Thread.sleep(100);
+
+        try (Socket socket = new Socket("127.0.0.1", port)) {
+            socket.setTcpNoDelay(true);
+            OutputStream out = socket.getOutputStream();
+            InputStream in = socket.getInputStream();
+            byte[] buf = new byte[8192];
+
+            // 1. Bitmaps (SETBIT, GETBIT, BITCOUNT)
+            out.write("*4\r\n$6\r\nSETBIT\r\n$12\r\nactive_users\r\n$1\r\n7\r\n$1\r\n1\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            int read = in.read(buf);
+            String resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":0\r\n", resp, "SETBIT offset 7 returns old bit 0");
+
+            out.write("*3\r\n$6\r\nGETBIT\r\n$12\r\nactive_users\r\n$1\r\n7\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":1\r\n", resp, "GETBIT offset 7 returns bit 1");
+
+            out.write("*3\r\n$6\r\nGETBIT\r\n$12\r\nactive_users\r\n$1\r\n8\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":0\r\n", resp, "GETBIT offset 8 returns bit 0");
+
+            out.write("*4\r\n$6\r\nSETBIT\r\n$12\r\nactive_users\r\n$2\r\n15\r\n$1\r\n1\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":0\r\n", resp, "SETBIT offset 15 returns old bit 0");
+
+            out.write("*2\r\n$8\r\nBITCOUNT\r\n$12\r\nactive_users\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":2\r\n", resp, "BITCOUNT returns exactly 2 bits set");
+
+            // 2. HyperLogLog (PFADD, PFCOUNT)
+            out.write("*5\r\n$5\r\nPFADD\r\n$8\r\nvisitors\r\n$5\r\nalice\r\n$3\r\nbob\r\n$7\r\ncharlie\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":1\r\n", resp, "PFADD returns 1 when registers updated");
+
+            out.write("*3\r\n$5\r\nPFADD\r\n$8\r\nvisitors\r\n$5\r\nalice\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":0\r\n", resp, "PFADD returns 0 on duplicate element");
+
+            out.write("*2\r\n$7\r\nPFCOUNT\r\n$8\r\nvisitors\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":3\r\n", resp, "PFCOUNT returns estimated cardinality 3");
+
+            out.write("*4\r\n$5\r\nPFADD\r\n$9\r\nvisitors2\r\n$5\r\ndavid\r\n$3\r\neve\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":1\r\n", resp, "PFADD visitors2 returns 1");
+
+            out.write("*3\r\n$7\r\nPFCOUNT\r\n$8\r\nvisitors\r\n$9\r\nvisitors2\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":5\r\n", resp, "PFCOUNT merged keys returns estimated cardinality 5");
+
+            // 3. Redis Streams (XADD, XLEN, XRANGE)
+            out.write("*7\r\n$4\r\nXADD\r\n$6\r\nevents\r\n$1\r\n*\r\n$6\r\nsensor\r\n$4\r\ntemp\r\n$3\r\nval\r\n$4\r\n21.5\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertTrue(resp.startsWith("$"), "XADD auto-generates stream ID");
+            assertTrue(resp.contains("-0\r\n"), "XADD first entry sequence is 0");
+
+            out.write("*2\r\n$4\r\nXLEN\r\n$6\r\nevents\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":1\r\n", resp, "XLEN returns 1 after first stream append");
+
+            out.write("*7\r\n$4\r\nXADD\r\n$6\r\nevents\r\n$1\r\n*\r\n$6\r\nsensor\r\n$8\r\npressure\r\n$3\r\nval\r\n$6\r\n1013.2\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertTrue(resp.startsWith("$"), "XADD second entry assigned ID");
+
+            out.write("*2\r\n$4\r\nXLEN\r\n$6\r\nevents\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertEquals(":2\r\n", resp, "XLEN returns 2 after second append");
+
+            out.write("*4\r\n$6\r\nXRANGE\r\n$6\r\nevents\r\n$1\r\n-\r\n$1\r\n+\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertTrue(resp.startsWith("*2\r\n"), "XRANGE returns 2 items in array");
+            assertTrue(resp.contains("temp"), "XRANGE contains first entry payload");
+            assertTrue(resp.contains("pressure"), "XRANGE contains second entry payload");
+
+            // Monotonic validation test: trying to insert with ID smaller than top item
+            out.write("*7\r\n$4\r\nXADD\r\n$6\r\nevents\r\n$3\r\n1-0\r\n$6\r\nsensor\r\n$3\r\nold\r\n$3\r\nval\r\n$1\r\n0\r\n".getBytes(StandardCharsets.US_ASCII));
+            out.flush();
+            read = in.read(buf);
+            resp = new String(buf, 0, read, StandardCharsets.UTF_8);
+            assertTrue(resp.startsWith("-ERR The ID specified in XADD is equal or smaller"), "XADD rejects non-monotonic entry ID");
 
         } finally {
             server.stop();

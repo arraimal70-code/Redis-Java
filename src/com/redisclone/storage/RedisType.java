@@ -5,7 +5,8 @@ public enum RedisType {
     LIST("list"),
     HASH("hash"),
     SET("set"),
-    ZSET("zset");
+    ZSET("zset"),
+    STREAM("stream");
 
     private final String typeName;
 

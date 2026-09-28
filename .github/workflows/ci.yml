@@ -23,7 +23,7 @@ jobs:
       - name: Compile Source Code
         run: |
           mkdir -p bin
-          find src -name "*.java" > sources.txt
+          find src examples -name "*.java" > sources.txt
           javac -d bin @sources.txt
 
       - name: Compile & Run Test Suite

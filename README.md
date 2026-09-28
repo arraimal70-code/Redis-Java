@@ -3,7 +3,7 @@
 [![CI Pipeline](https://github.com/arraimal70-code/Redis-Java/actions/workflows/ci.yml/badge.svg)](https://github.com/arraimal70-code/Redis-Java/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Java 21+](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://openjdk.org/projects/jdk/21/)
-[![Tests: 121 Passed](https://img.shields.io/badge/Tests-121%20Passed-brightgreen.svg)](#test-suite--chaos-resilience)
+[![Tests: 140 Passed](https://img.shields.io/badge/Tests-140%20Passed-brightgreen.svg)](#test-suite--chaos-resilience)
 
 An experimental, high-performance in-memory key-value data store and caching engine engineered from the ground up in **Core Java 21**. 
 
@@ -85,8 +85,11 @@ graph TD
 - **Zero-Allocation Numeric Parsing:** Decodes ASCII integers and bulk lengths directly via `parseAsciiLong` without allocating intermediate `String` objects.
 - **Frame Hardening:** Arithmetic 64-bit integer overflow protection and caps at 512MB for bulk strings and 1,000,000 for array frames.
 
-### 3. In-Memory Store & Eviction Subsystem
-- **Typed In-Memory Objects:** Supports `STRING`, `LIST`, and `HASH` data structures.
+### 3. In-Memory Store & Advanced Data Primitives
+- **Typed In-Memory Objects:** Supports `STRING`, `LIST`, `HASH`, `STREAM`, `BITMAP`, and `HYPERLOGLOG` data structures.
+- **Append-Only Redis Streams:** Radix/log-backed events with monotonic millisecond IDs (`<msTime>-<seq>`), field-value tuples, and continuous range querying (`XADD`, `XLEN`, `XRANGE`).
+- **Probabilistic HyperLogLog (Flajolet et al.):** 64-register cardinal estimator with 64-bit hashing, harmonic mean aggregation, and small-cardinality linear counting ($O(1)$ memory of 64 bytes per set; `PFADD`, `PFCOUNT`).
+- **Bitmaps / Bitfields:** Direct byte-array bit manipulation for high-efficiency daily active user tracking and membership flags (`SETBIT`, `GETBIT`, `BITCOUNT`).
 - **Dual Expiration Mechanics:**
   - *Passive (Lazy) Eviction:* Read access purges expired keys on demand.
   - *Active Probabilistic Eviction (10Hz):* Background daemon probabilistically samples 20 keys with TTLs using $O(k)$ bounded iterator sampling, bounding expired key memory overhead below 25%.
@@ -106,8 +109,9 @@ graph TD
 - **Hash Tag Support:** Evaluates `{hash_tag}` substrings so related keys map to identical slots.
 - **Client Redirection:** Emits `-MOVED <slot> <target_node_ip:port>` redirection frames when queried for unassigned slots.
 
-### 7. Dual-Layer Persistence Subsystems
+### 7. Dual-Layer Persistence & Dynamic Log Compaction
 - **Append-Only File (AOF):** Write-ahead logging in RESP wire format with configurable fsync policies (`ALWAYS`, `EVERYSEC`, `NO`) and startup recovery that gracefully recovers from truncated logs.
+- **Log Compaction (`BGREWRITEAOF`):** Asynchronously rewrites mutation logs into a minimal point-in-time state using atomic file replacement (`ATOMIC_MOVE`).
 - **Database Snapshots (RDB):** Compact binary point-in-time memory snapshot with `REDIS0009` header, type opcodes, millisecond expiry timestamps, and atomic file replacement.
 
 ---
@@ -117,6 +121,9 @@ graph TD
 | Category | Commands Supported |
 | :--- | :--- |
 | **Strings** | `SET` (with `EX` / `PX` options), `GET`, `INCR`, `MSET`, `MGET` |
+| **Bitmaps** | `SETBIT`, `GETBIT`, `BITCOUNT` |
+| **HyperLogLog** | `PFADD`, `PFCOUNT` |
+| **Streams** | `XADD`, `XLEN`, `XRANGE` |
 | **Keys & Expiry** | `DEL`, `EXPIRE`, `TTL`, `EXISTS` |
 | **Hashes** | `HSET`, `HGET`, `HGETALL` |
 | **Lists** | `LPUSH`, `RPUSH`, `LPOP`, `RPOP`, `LLEN` |
@@ -192,9 +199,13 @@ A production-ready reference gateway is provided in [`examples/real-world/AiInfe
 
 ## Test Suite & Chaos Resilience
 
-The repository maintains two comprehensive test suites totaling **121 automated test assertions**:
+---
+
+## Test Suite & Chaos Resilience
+
+The repository maintains two comprehensive test suites totaling **140 automated test assertions**:
 1. **Core Integration Suite (`RedisServerTest.java`):** 82 assertions testing data types, transactions, replication handshakes, cluster routing, and persistence reload.
-2. **Failure & Chaos Suite (`FailureAndEdgeCaseTest.java`):** 39 assertions verifying recovery from corrupted AOF logs, AOF compaction (`BGREWRITEAOF`) replay, invalid RDB headers, 64-bit integer overflows, bounded buffer enforcement, batch commands (`MSET`/`MGET`), `DBSIZE`, `FLUSHDB`, `AUTH`, and 50-thread atomic concurrency contention.
+2. **Failure & Chaos Suite (`FailureAndEdgeCaseTest.java`):** 58 assertions verifying recovery from corrupted AOF logs, AOF compaction (`BGREWRITEAOF`) replay, invalid RDB headers, 64-bit integer overflows, bounded buffer enforcement, batch commands (`MSET`/`MGET`), `DBSIZE`, `FLUSHDB`, `AUTH`, Bitmaps (`SETBIT`/`GETBIT`/`BITCOUNT`), HyperLogLog cardinality (`PFADD`/`PFCOUNT`), Redis Streams (`XADD`/`XLEN`/`XRANGE`), and 50-thread atomic concurrency contention.
 
 ```cmd
 # Run complete test suite (Windows)
@@ -236,8 +247,14 @@ run.bat
 java -cp bin com.redisclone.server.RedisServer --port 6379 --aof true --rdb true
 ```
 
-### Running the AI Inference Cache Reference App
+### Running Real-World Reference Applications
 ```cmd
+# 1. Semantic AI Inference Prompt Cache (400.8x speedup)
+java -cp bin com.redisclone.examples.AiInferenceCache
+
+# 2. Distributed Sliding-Window API Rate Limiter
+java -cp bin com.redisclone.examples.DistributedRateLimiter
+```
 # Terminal 1: Start Redis clone
 java -cp bin com.redisclone.server.RedisServer --port 6388
 

@@ -429,6 +429,236 @@ public class DataStore {
         return val;
     }
 
+    // --- Bitmap Operations ---
+
+    public int setbit(String key, int offset, int bitValue) {
+        if (checkAndExpire(key)) {
+            db.remove(key);
+            expires.remove(key);
+        }
+        int byteIndex = offset / 8;
+        int bitOffset = 7 - (offset % 8);
+
+        RedisObject obj = db.get(key);
+        byte[] bytes;
+        if (obj == null || obj.getType() != RedisType.STRING) {
+            bytes = new byte[byteIndex + 1];
+            obj = RedisObject.ofString(bytes);
+            db.put(key, obj);
+        } else {
+            byte[] existing = obj.asStringBytes();
+            if (byteIndex >= existing.length) {
+                bytes = Arrays.copyOf(existing, byteIndex + 1);
+                obj.setValue(bytes);
+            } else {
+                bytes = existing;
+            }
+        }
+
+        int oldBit = (bytes[byteIndex] >> bitOffset) & 1;
+        if (bitValue == 1) {
+            bytes[byteIndex] = (byte) (bytes[byteIndex] | (1 << bitOffset));
+        } else {
+            bytes[byteIndex] = (byte) (bytes[byteIndex] & ~(1 << bitOffset));
+        }
+
+        if (evictionPolicy != null) evictionPolicy.onKeyInsert(key);
+        bumpKeyVersion(key);
+        return oldBit;
+    }
+
+    public int getbit(String key, int offset) {
+        if (checkAndExpire(key)) return 0;
+        RedisObject obj = db.get(key);
+        if (obj == null || obj.getType() != RedisType.STRING) return 0;
+        byte[] bytes = obj.asStringBytes();
+        int byteIndex = offset / 8;
+        if (byteIndex >= bytes.length) return 0;
+        int bitOffset = 7 - (offset % 8);
+        return (bytes[byteIndex] >> bitOffset) & 1;
+    }
+
+    public long bitcount(String key, int start, int end) {
+        if (checkAndExpire(key)) return 0;
+        RedisObject obj = db.get(key);
+        if (obj == null || obj.getType() != RedisType.STRING) return 0;
+        byte[] bytes = obj.asStringBytes();
+        if (bytes.length == 0) return 0;
+
+        int len = bytes.length;
+        if (start < 0) start = Math.max(0, len + start);
+        if (end < 0) end = len + end;
+        if (start >= len || start > end) return 0;
+        end = Math.min(len - 1, end);
+
+        long count = 0;
+        for (int i = start; i <= end; i++) {
+            count += Integer.bitCount(bytes[i] & 0xFF);
+        }
+        return count;
+    }
+
+    // --- HyperLogLog Operations ---
+
+    public boolean pfadd(String key, List<byte[]> elements) {
+        if (checkAndExpire(key)) {
+            db.remove(key);
+            expires.remove(key);
+        }
+        if (!db.containsKey(key)) {
+            ensureCapacity();
+        }
+        RedisObject obj = db.get(key);
+        HyperLogLog hll;
+        if (obj == null || obj.getType() != RedisType.STRING) {
+            hll = new HyperLogLog();
+            obj = RedisObject.ofString(hll.getBytes());
+            db.put(key, obj);
+        } else {
+            hll = new HyperLogLog(obj.asStringBytes());
+        }
+
+        boolean updated = false;
+        for (byte[] el : elements) {
+            if (hll.add(el)) {
+                updated = true;
+            }
+        }
+        if (updated) {
+            obj.setValue(hll.getBytes());
+            bumpKeyVersion(key);
+            if (evictionPolicy != null) evictionPolicy.onKeyInsert(key);
+        }
+        return updated;
+    }
+
+    public long pfcount(List<String> keys) {
+        HyperLogLog merged = new HyperLogLog();
+        for (String k : keys) {
+            if (checkAndExpire(k)) {
+                db.remove(k);
+                expires.remove(k);
+                continue;
+            }
+            RedisObject obj = db.get(k);
+            if (obj != null && obj.getType() == RedisType.STRING) {
+                merged.merge(new HyperLogLog(obj.asStringBytes()));
+            }
+        }
+        return merged.estimate();
+    }
+
+    // --- Stream Operations ---
+
+    public synchronized String xadd(String key, String idSpec, List<byte[]> fields) {
+        if (checkAndExpire(key)) {
+            db.remove(key);
+            expires.remove(key);
+        }
+        if (!db.containsKey(key)) {
+            ensureCapacity();
+        }
+        RedisObject obj = db.computeIfAbsent(key, k -> RedisObject.ofStream());
+        if (obj.getType() != RedisType.STREAM) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        List<StreamEntry> stream = obj.asStream();
+
+        long now = System.currentTimeMillis();
+        long ts;
+        long seq;
+
+        if ("*".equals(idSpec)) {
+            ts = now;
+            long lastSeq = -1;
+            if (!stream.isEmpty()) {
+                StreamEntry last = stream.get(stream.size() - 1);
+                if (last.timestampMs() == ts) {
+                    lastSeq = last.sequence();
+                } else if (last.timestampMs() > ts) {
+                    ts = last.timestampMs();
+                    lastSeq = last.sequence();
+                }
+            }
+            seq = lastSeq + 1;
+        } else {
+            String[] parts = idSpec.split("-");
+            ts = Long.parseLong(parts[0]);
+            if (parts.length > 1 && "*".equals(parts[1])) {
+                long lastSeq = -1;
+                if (!stream.isEmpty()) {
+                    StreamEntry last = stream.get(stream.size() - 1);
+                    if (last.timestampMs() == ts) {
+                        lastSeq = last.sequence();
+                    }
+                }
+                seq = lastSeq + 1;
+            } else {
+                seq = parts.length > 1 ? Long.parseLong(parts[1]) : 0L;
+            }
+        }
+
+        // Enforce monotonic ID validation
+        if (!stream.isEmpty()) {
+            StreamEntry last = stream.get(stream.size() - 1);
+            if (ts < last.timestampMs() || (ts == last.timestampMs() && seq <= last.sequence())) {
+                throw new IllegalArgumentException("ERR The ID specified in XADD is equal or smaller than the target stream top item");
+            }
+        }
+
+        String finalId = ts + "-" + seq;
+        StreamEntry entry = new StreamEntry(finalId, ts, seq, fields);
+        stream.add(entry);
+
+        if (evictionPolicy != null) evictionPolicy.onKeyInsert(key);
+        bumpKeyVersion(key);
+        return finalId;
+    }
+
+    public int xlen(String key) {
+        if (checkAndExpire(key)) return 0;
+        RedisObject obj = db.get(key);
+        if (obj == null) return 0;
+        if (obj.getType() != RedisType.STREAM) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        return obj.asStream().size();
+    }
+
+    public List<StreamEntry> xrange(String key, String start, String end, int count) {
+        if (checkAndExpire(key)) return Collections.emptyList();
+        RedisObject obj = db.get(key);
+        if (obj == null) return Collections.emptyList();
+        if (obj.getType() != RedisType.STREAM) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        List<StreamEntry> stream = obj.asStream();
+        List<StreamEntry> result = new ArrayList<>();
+
+        for (StreamEntry entry : stream) {
+            if (!"-".equals(start) && compareStreamId(entry.id(), start) < 0) {
+                continue;
+            }
+            if (!"+".equals(end) && compareStreamId(entry.id(), end) > 0) {
+                break;
+            }
+            result.add(entry);
+            if (count > 0 && result.size() >= count) break;
+        }
+        return result;
+    }
+
+    public static int compareStreamId(String id1, String id2) {
+        String[] p1 = id1.split("-");
+        String[] p2 = id2.split("-");
+        long t1 = Long.parseLong(p1[0]);
+        long t2 = Long.parseLong(p2[0]);
+        if (t1 != t2) return Long.compare(t1, t2);
+        long s1 = p1.length > 1 ? Long.parseLong(p1[1]) : 0;
+        long s2 = p2.length > 1 ? Long.parseLong(p2[1]) : 0;
+        return Long.compare(s1, s2);
+    }
+
     // --- Inspection, Telemetry & Persistence Helpers ---
 
     public int keyCount() {

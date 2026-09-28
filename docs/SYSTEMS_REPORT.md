@@ -169,12 +169,12 @@ Benchmarked using `RedisBenchmark.java` across 200,000+ requests with nanosecond
 - **Hit Ratio:** **91.7%** (55 hits / 5 misses), avoiding 10.50 seconds of GPU compute.
 
 ### 9.4 Fault Tolerance & Chaos Testing
-- **121 / 121 automated unit and chaos tests passed**.
-- Validated recovery from truncated AOF files, AOF log compaction (`BGREWRITEAOF`), corrupted RDB magic headers, 64-bit integer overflow inputs, bounded buffer OOM protection, batch operations (`MSET`/`MGET`), `DBSIZE`/`FLUSHDB`, `AUTH`, and 50-thread atomic concurrency contention.
+- **140 / 140 automated unit and chaos tests passed (100% pass rate)**.
+- Validated recovery from truncated AOF files, AOF log compaction (`BGREWRITEAOF`), corrupted RDB magic headers, 64-bit integer overflow inputs, bounded buffer OOM protection, batch operations (`MSET`/`MGET`), `DBSIZE`/`FLUSHDB`, `AUTH`, Bitmaps (`SETBIT`/`GETBIT`/`BITCOUNT`), HyperLogLog cardinality (`PFADD`/`PFCOUNT`), Redis Streams (`XADD`/`XLEN`/`XRANGE`), and 50-thread atomic concurrency contention.
 
 ### 9.5 Internal Component Microbenchmarks (Tier 4 C2 JIT)
 - **Zero-Allocation RESP Numeric Parsing:** **35.3 ns/op** (28.34M ops/sec) vs JDK `Long.parseLong` at **116.9 ns/op** (**3.31x faster**, zero GC allocation).
 - **CRC16-CCITT Cluster Slot Routing:** **125.81 ns/op** (7.95M slots/sec).
 - **In-Memory DataStore Lookup:** **721.75 ns/op** (1.39M reads/sec).
-- **Interactive Systems Lab:** Browser diagnostic tool (`docs/interactive-architecture.html`) with live NIO reactor simulator, 16,384-slot ring visualizer, and 10Hz eviction simulator.
+- **Interactive Systems Lab:** Browser diagnostic tool (`docs/interactive-architecture.html`) with live NIO reactor simulator, 16,384-slot ring visualizer, Streams append visualizer, HLL 64-register estimator, and 10Hz eviction simulator.
 
