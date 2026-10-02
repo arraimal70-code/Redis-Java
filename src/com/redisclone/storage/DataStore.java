@@ -659,6 +659,120 @@ public class DataStore {
         return Long.compare(s1, s2);
     }
 
+    // --- Sorted Set (ZSET) Operations ---
+
+    public synchronized int zadd(String key, Map<String, Double> scoreMembers) {
+        if (checkAndExpire(key)) {
+            db.remove(key);
+            expires.remove(key);
+        }
+        if (!db.containsKey(key)) {
+            ensureCapacity();
+        }
+        RedisObject obj = db.computeIfAbsent(key, k -> RedisObject.ofZSet());
+        if (obj.getType() != RedisType.ZSET) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        SortedSet zset = obj.asZSet();
+        int added = 0;
+        for (Map.Entry<String, Double> entry : scoreMembers.entrySet()) {
+            added += zset.add(entry.getKey(), entry.getValue());
+        }
+        if (evictionPolicy != null) evictionPolicy.onKeyInsert(key);
+        bumpKeyVersion(key);
+        return added;
+    }
+
+    public Double zscore(String key, String member) {
+        if (checkAndExpire(key)) return null;
+        RedisObject obj = db.get(key);
+        if (obj == null) return null;
+        if (obj.getType() != RedisType.ZSET) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        return obj.asZSet().score(member);
+    }
+
+    public long zcard(String key) {
+        if (checkAndExpire(key)) return 0;
+        RedisObject obj = db.get(key);
+        if (obj == null) return 0;
+        if (obj.getType() != RedisType.ZSET) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        return obj.asZSet().card();
+    }
+
+    public long zrank(String key, String member) {
+        if (checkAndExpire(key)) return -1;
+        RedisObject obj = db.get(key);
+        if (obj == null) return -1;
+        if (obj.getType() != RedisType.ZSET) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        return obj.asZSet().rank(member);
+    }
+
+    public long zrevrank(String key, String member) {
+        if (checkAndExpire(key)) return -1;
+        RedisObject obj = db.get(key);
+        if (obj == null) return -1;
+        if (obj.getType() != RedisType.ZSET) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        return obj.asZSet().revrank(member);
+    }
+
+    public long zcount(String key, double min, double max) {
+        if (checkAndExpire(key)) return 0;
+        RedisObject obj = db.get(key);
+        if (obj == null) return 0;
+        if (obj.getType() != RedisType.ZSET) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        return obj.asZSet().count(min, max);
+    }
+
+    public List<String> zrange(String key, long start, long stop, boolean withScores) {
+        if (checkAndExpire(key)) return Collections.emptyList();
+        RedisObject obj = db.get(key);
+        if (obj == null) return Collections.emptyList();
+        if (obj.getType() != RedisType.ZSET) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        return obj.asZSet().range(start, stop, withScores);
+    }
+
+    public List<String> zrevrange(String key, long start, long stop, boolean withScores) {
+        if (checkAndExpire(key)) return Collections.emptyList();
+        RedisObject obj = db.get(key);
+        if (obj == null) return Collections.emptyList();
+        if (obj.getType() != RedisType.ZSET) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        return obj.asZSet().revrange(start, stop, withScores);
+    }
+
+    public synchronized int zrem(String key, List<String> members) {
+        if (checkAndExpire(key)) return 0;
+        RedisObject obj = db.get(key);
+        if (obj == null) return 0;
+        if (obj.getType() != RedisType.ZSET) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        SortedSet zset = obj.asZSet();
+        int removed = 0;
+        for (String m : members) {
+            if (zset.remove(m)) {
+                removed++;
+            }
+        }
+        if (removed > 0) {
+            bumpKeyVersion(key);
+        }
+        return removed;
+    }
+
     // --- Inspection, Telemetry & Persistence Helpers ---
 
     public int keyCount() {

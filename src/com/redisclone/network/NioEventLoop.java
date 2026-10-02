@@ -42,7 +42,7 @@ public class NioEventLoop implements Runnable {
         this.serverChannel = ServerSocketChannel.open();
         this.serverChannel.configureBlocking(false);
         this.serverChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
-        this.serverChannel.bind(new InetSocketAddress(host, port));
+        this.serverChannel.bind(new InetSocketAddress(host, port), 1024);
         this.serverChannel.register(selector, SelectionKey.OP_ACCEPT);
 
         this.running = true;

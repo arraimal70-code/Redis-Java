@@ -85,6 +85,8 @@ public class CommandRegistry {
         commands.put("PUBLISH", new PubSubCommands.PublishCommand());
         commands.put("SUBSCRIBE", new PubSubCommands.SubscribeCommand());
         commands.put("UNSUBSCRIBE", new PubSubCommands.UnsubscribeCommand());
+        commands.put("PSUBSCRIBE", new PubSubCommands.PSubscribeCommand());
+        commands.put("PUNSUBSCRIBE", new PubSubCommands.PUnsubscribeCommand());
 
         // Transaction commands (ACID/CAS)
         commands.put("MULTI", new TransactionCommands.MultiCommand());
@@ -129,6 +131,17 @@ public class CommandRegistry {
         commands.put("XADD", new StreamCommands.XAddCommand());
         commands.put("XLEN", new StreamCommands.XLenCommand());
         commands.put("XRANGE", new StreamCommands.XRangeCommand());
+
+        // Sorted Set (ZSET) commands
+        commands.put("ZADD", new ZSetCommands.ZAddCommand());
+        commands.put("ZSCORE", new ZSetCommands.ZScoreCommand());
+        commands.put("ZCARD", new ZSetCommands.ZCardCommand());
+        commands.put("ZCOUNT", new ZSetCommands.ZCountCommand());
+        commands.put("ZRANK", new ZSetCommands.ZRankCommand());
+        commands.put("ZREVRANK", new ZSetCommands.ZRevRankCommand());
+        commands.put("ZRANGE", new ZSetCommands.ZRangeCommand());
+        commands.put("ZREVRANGE", new ZSetCommands.ZRevRangeCommand());
+        commands.put("ZREM", new ZSetCommands.ZRemCommand());
     }
 
     public void registerCommand(String name, Command command) {
@@ -139,6 +152,11 @@ public class CommandRegistry {
      * Dispatches an incoming parsed RESP frame from a client socket.
      */
     public void dispatch(ClientConnection client, RespFrame frame) {
+        if (frame instanceof RespFrame.Error err) {
+            client.sendReply(err);
+            return;
+        }
+
         if (!(frame instanceof RespFrame.Array arrayFrame) || arrayFrame.elements() == null || arrayFrame.elements().isEmpty()) {
             client.sendReply(RespFrame.ofError("ERR invalid command format"));
             return;

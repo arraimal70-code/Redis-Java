@@ -7,6 +7,7 @@ import com.redisclone.resp.RespParser;
 
 import com.redisclone.storage.DataStore;
 import com.redisclone.storage.RedisObject;
+import com.redisclone.storage.SortedSet;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -211,6 +212,22 @@ public class AofManager {
                                 elements.add(RespFrame.ofBulkString(keyBytes));
                                 for (byte[] item : list) {
                                     elements.add(RespFrame.ofBulkString(item));
+                                }
+                                tempFos.write(RespEncoder.encode(RespFrame.ofArray(elements)));
+                            }
+                        }
+                        case ZSET -> {
+                            SortedSet zset = obj.asZSet();
+                            Map<String, Double> dict = zset.getDictSnapshot();
+                            if (!dict.isEmpty()) {
+                                List<RespFrame> elements = new ArrayList<>();
+                                elements.add(RespFrame.ofBulkString("ZADD".getBytes(StandardCharsets.US_ASCII)));
+                                elements.add(RespFrame.ofBulkString(keyBytes));
+                                for (Map.Entry<String, Double> zEntry : dict.entrySet()) {
+                                    double score = zEntry.getValue();
+                                    String scoreStr = (score == (long) score) ? String.valueOf((long) score) : String.valueOf(score);
+                                    elements.add(RespFrame.ofBulkString(scoreStr.getBytes(StandardCharsets.US_ASCII)));
+                                    elements.add(RespFrame.ofBulkString(zEntry.getKey().getBytes(StandardCharsets.UTF_8)));
                                 }
                                 tempFos.write(RespEncoder.encode(RespFrame.ofArray(elements)));
                             }

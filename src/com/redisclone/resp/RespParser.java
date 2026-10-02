@@ -81,7 +81,7 @@ public class RespParser {
     public static final int MAX_BULK_STRING_LENGTH = 512 * 1024 * 1024; // 512 MB (matches Redis proto-max-bulk-len)
     public static final int MAX_ARRAY_ELEMENTS = 1024 * 1024; // 1,048,576 elements max per array frame
 
-    private static RespFrame.BulkString parseBulkString(ByteBuffer buffer) {
+    private static RespFrame parseBulkString(ByteBuffer buffer) {
         byte[] lengthLine = readLine(buffer);
         if (lengthLine == null) return null;
 
@@ -89,11 +89,11 @@ public class RespParser {
         try {
             long parsed = parseAsciiLong(lengthLine, 0, lengthLine.length);
             if (parsed > MAX_BULK_STRING_LENGTH || parsed < -1) {
-                return null; // Invalid length; caller will handle or connection will reject
+                return RespFrame.ofError("ERR Protocol error: invalid bulk length");
             }
             length = (int) parsed;
         } catch (NumberFormatException e) {
-            return null;
+            return RespFrame.ofError("ERR Protocol error: invalid bulk length");
         }
 
         if (length == -1) {
@@ -112,13 +112,13 @@ public class RespParser {
         byte cr = buffer.get();
         byte lf = buffer.get();
         if (cr != CR || lf != LF) {
-            return null;
+            return RespFrame.ofError("ERR Protocol error: expected CRLF after bulk string");
         }
 
         return new RespFrame.BulkString(payload);
     }
 
-    private static RespFrame.Array parseArray(ByteBuffer buffer) {
+    private static RespFrame parseArray(ByteBuffer buffer) {
         byte[] countLine = readLine(buffer);
         if (countLine == null) return null;
 
@@ -126,18 +126,15 @@ public class RespParser {
         try {
             long parsed = parseAsciiLong(countLine, 0, countLine.length);
             if (parsed > MAX_ARRAY_ELEMENTS || parsed < -1) {
-                return null;
+                return RespFrame.ofError("ERR Protocol error: invalid multibulk length");
             }
             count = (int) parsed;
         } catch (NumberFormatException e) {
-            return null;
+            return RespFrame.ofError("ERR Protocol error: invalid multibulk length");
         }
 
         if (count == -1) {
             return RespFrame.ofNullArray();
-        }
-        if (count < -1) {
-            return null;
         }
 
         List<RespFrame> elements = new ArrayList<>(count);
@@ -145,6 +142,9 @@ public class RespParser {
             RespFrame element = parse(buffer);
             if (element == null) {
                 return null; // Incomplete array frame
+            }
+            if (element instanceof RespFrame.Error) {
+                return element;
             }
             elements.add(element);
         }

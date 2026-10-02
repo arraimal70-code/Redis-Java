@@ -276,7 +276,7 @@
     <h1>
       Redis-Java 21 Architecture Lab
       <span class="badge">Core Java 21</span>
-      <span class="badge badge-green">140/140 Tests Passed</span>
+      <span class="badge badge-green">172/172 Tests Passed</span>
       <span class="badge">42,357 Peak RPS</span>
     </h1>
     <p style="color: var(--text-secondary); margin-top: 6px; font-size: 14px;">
@@ -290,6 +290,7 @@
     <button class="tab-btn" onclick="switchTab('replication')">🔄 Replication & Ring Backlog</button>
     <button class="tab-btn" onclick="switchTab('eviction')">⏱️ Active TTL Eviction (10Hz)</button>
     <button class="tab-btn" onclick="switchTab('streams-hll')">🌊 Streams & HyperLogLog</button>
+    <button class="tab-btn" onclick="switchTab('skiplist')">📈 SkipList & ZSET Engine</button>
     <button class="tab-btn" onclick="switchTab('benchmarks')">📊 Empirical Benchmarks</button>
   </nav>
 
@@ -598,6 +599,59 @@ Client channel readable. Ready to invoke readIntoBuffer()...
     </div>
   </section>
 
+  <!-- TAB 7: WILLIAM PUGH SKIPLIST & ZSET ENGINE -->
+  <section id="tab-skiplist" class="tab-content">
+    <div class="grid-4">
+      <div class="stat-box">
+        <div class="stat-val green">32</div>
+        <div class="stat-lbl">Max Levels (Pugh 1990)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">p = 0.25</div>
+        <div class="stat-lbl">Promotion Probability</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val amber">O(log N)</div>
+        <div class="stat-lbl">Search & Rank Complexity</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val purple">1.33</div>
+        <div class="stat-lbl">Avg Pointers / Node</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📈 Interactive William Pugh SkipList & ZSET Rank Visualizer</h2>
+      <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+        Explore William Pugh's probabilistic multi-level indexing structure. Distance spans along forward pointers enable <strong>O(log N) rank and percentile calculation</strong> without linear counting.
+      </p>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+        <input type="text" id="zset-member" value="player_1" placeholder="Member name" style="background: var(--bg-primary); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; width: 140px; font-family: var(--font-mono);">
+        <input type="number" id="zset-score" value="100" placeholder="Score" style="background: var(--bg-primary); border: 1px solid var(--border-color); color: #fff; padding: 6px 10px; border-radius: 6px; width: 100px; font-family: var(--font-mono);">
+        <button class="btn" onclick="uiZAdd()">ZADD member score</button>
+        <button class="btn btn-secondary" onclick="uiZRank()">ZRANK (Query Rank)</button>
+        <button class="btn btn-secondary" onclick="uiLoadSampleLeaderboard()">Load Leaderboard (6)</button>
+        <button class="btn btn-secondary" onclick="uiClearSkipList()">Clear</button>
+      </div>
+
+      <!-- SkipList Visual Canvas -->
+      <div id="skiplist-canvas-container" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px; overflow-x: auto; min-height: 220px; margin-bottom: 16px;">
+        <div id="skiplist-visual-grid" style="display: flex; gap: 16px; align-items: flex-end; min-width: 600px;">
+          <!-- Dynamically populated SkipList columns -->
+        </div>
+      </div>
+
+      <!-- Traversal Diagnostic Trace -->
+      <div class="card" style="margin-bottom: 0; background: var(--bg-card);">
+        <h3 style="font-size: 14px; color: var(--accent-cyan); margin-bottom: 8px;">🔍 Traversal & Rank Calculation Trace</h3>
+        <div id="skiplist-trace-log" style="font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); line-height: 1.6; max-height: 120px; overflow-y: auto;">
+          Ready. Click 'Load Leaderboard (6)' or 'ZADD' to populate the SkipList.
+        </div>
+      </div>
+    </div>
+  </section>
+
   <script>
     function switchTab(tabId) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -612,6 +666,7 @@ Client channel readable. Ready to invoke readIntoBuffer()...
       if (tabId === 'replication') drawBacklogRing();
       if (tabId === 'eviction') initEvictionGrid();
       if (tabId === 'streams-hll') initHllGrid();
+      if (tabId === 'skiplist') renderSkipListUI();
     }
 
     // --- Reactor Simulator ---
@@ -953,6 +1008,161 @@ Client channel readable. Ready to invoke readIntoBuffer()...
       document.getElementById('hll-nonzero-count').innerText = `${nonZero} / 64`;
     }
 
+    // --- William Pugh SkipList Simulator ---
+    const MAX_VIS_LEVEL = 4;
+    let skiplistNodes = [];
+
+    function randomVisLevel() {
+      let lvl = 1;
+      while (Math.random() < 0.25 && lvl < MAX_VIS_LEVEL) {
+        lvl++;
+      }
+      return lvl;
+    }
+
+    function uiClearSkipList() {
+      skiplistNodes = [];
+      renderSkipListUI();
+      document.getElementById('skiplist-trace-log').innerText = "SkipList cleared. Ready.";
+    }
+
+    function uiLoadSampleLeaderboard() {
+      skiplistNodes = [
+        { member: "alice", score: 50, level: 3 },
+        { member: "bob", score: 75, level: 1 },
+        { member: "charlie", score: 85, level: 2 },
+        { member: "david", score: 90, level: 4 },
+        { member: "eva", score: 120, level: 1 },
+        { member: "frank", score: 150, level: 2 }
+      ];
+      renderSkipListUI();
+      document.getElementById('skiplist-trace-log').innerText = "Loaded 6-member leaderboard. Spans computed across 4 levels.";
+    }
+
+    function uiZAdd() {
+      const member = document.getElementById('zset-member').value.trim();
+      const score = parseFloat(document.getElementById('zset-score').value);
+      if (!member || isNaN(score)) return;
+
+      const existingIdx = skiplistNodes.findIndex(n => n.member === member);
+      let lvl = existingIdx !== -1 ? skiplistNodes[existingIdx].level : randomVisLevel();
+      if (existingIdx !== -1) {
+        skiplistNodes.splice(existingIdx, 1);
+      }
+      skiplistNodes.push({ member, score, level: lvl });
+      skiplistNodes.sort((a, b) => a.score === b.score ? a.member.localeCompare(b.member) : a.score - b.score);
+      renderSkipListUI();
+      document.getElementById('skiplist-trace-log').innerText = `ZADD committed '${member}' with score ${score} at generated level ${lvl}.`;
+    }
+
+    function uiZRank() {
+      const target = document.getElementById('zset-member').value.trim();
+      if (skiplistNodes.length === 0) {
+        document.getElementById('skiplist-trace-log').innerText = "SkipList is empty.";
+        return;
+      }
+      const targetNode = skiplistNodes.find(n => n.member === target);
+      if (!targetNode) {
+        document.getElementById('skiplist-trace-log').innerText = `Member '${target}' not found in ZSET (returns nil).`;
+        return;
+      }
+
+      let log = [`[ZRANK '${target}'] Starting search at Header Level ${MAX_VIS_LEVEL}...`];
+      let rank = 0;
+      let highlightedPaths = [];
+
+      let currentIdx = -1;
+      for (let l = MAX_VIS_LEVEL - 1; l >= 0; l--) {
+        highlightedPaths.push({ nodeIdx: currentIdx, level: l });
+        while (true) {
+          let nextIdx = -1;
+          for (let i = currentIdx + 1; i < skiplistNodes.length; i++) {
+            if (skiplistNodes[i].level > l) {
+              nextIdx = i;
+              break;
+            }
+          }
+          if (nextIdx !== -1) {
+            const nextNode = skiplistNodes[nextIdx];
+            if (nextNode.score < targetNode.score || (nextNode.score === targetNode.score && nextNode.member.localeCompare(targetNode.member) <= 0)) {
+              const span = nextIdx - currentIdx;
+              rank += span;
+              currentIdx = nextIdx;
+              highlightedPaths.push({ nodeIdx: currentIdx, level: l });
+              log.push(`Level ${l + 1}: Jump forward to '${nextNode.member}' (score: ${nextNode.score}, span: ${span}). Running rank = ${rank}.`);
+              if (nextNode.member === target) break;
+            } else {
+              log.push(`Level ${l + 1}: Next node '${nextNode.member}' (score: ${nextNode.score}) exceeds target. Dropping to Level ${l}.`);
+              break;
+            }
+          } else {
+            log.push(`Level ${l + 1}: End of level reached. Dropping to Level ${l}.`);
+            break;
+          }
+        }
+        if (currentIdx !== -1 && skiplistNodes[currentIdx].member === target) break;
+      }
+
+      log.push(`✅ ZRANK result for '${target}': 0-based rank = ${rank - 1} (1-based rank = ${rank})`);
+      document.getElementById('skiplist-trace-log').innerHTML = log.join('<br>');
+      renderSkipListUI(highlightedPaths);
+    }
+
+    function renderSkipListUI(highlighted = []) {
+      const container = document.getElementById('skiplist-visual-grid');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const headerCol = document.createElement('div');
+      headerCol.style.cssText = 'display: flex; flex-direction: column; gap: 4px; align-items: center; min-width: 90px;';
+      const headerTitle = document.createElement('div');
+      headerTitle.style.cssText = 'font-size: 11px; font-weight: 700; color: var(--accent-cyan); margin-bottom: 4px;';
+      headerTitle.innerText = 'HEADER';
+      headerCol.appendChild(headerTitle);
+
+      for (let l = MAX_VIS_LEVEL - 1; l >= 0; l--) {
+        const cell = document.createElement('div');
+        const isHl = highlighted.some(h => h.nodeIdx === -1 && h.level === l);
+        cell.style.cssText = `width: 80px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 11px; font-weight: 600; border: 1px solid ${isHl ? 'var(--accent-cyan)' : 'var(--border-color)'}; background: ${isHl ? 'rgba(88, 166, 255, 0.3)' : 'var(--bg-card)'}; color: ${isHl ? '#fff' : 'var(--text-secondary)'};`;
+        cell.innerText = `L${l + 1} ➔`;
+        headerCol.appendChild(cell);
+      }
+      const headerBase = document.createElement('div');
+      headerBase.style.cssText = 'font-size: 11px; color: var(--text-secondary); margin-top: 4px;';
+      headerBase.innerText = 'Root';
+      headerCol.appendChild(headerBase);
+      container.appendChild(headerCol);
+
+      skiplistNodes.forEach((node, idx) => {
+        const col = document.createElement('div');
+        col.style.cssText = 'display: flex; flex-direction: column; gap: 4px; align-items: center; min-width: 90px;';
+        
+        const nodeTitle = document.createElement('div');
+        nodeTitle.style.cssText = 'font-size: 11px; font-weight: 700; color: var(--accent-green); margin-bottom: 4px;';
+        nodeTitle.innerText = `Rank ${idx + 1}`;
+        col.appendChild(nodeTitle);
+
+        for (let l = MAX_VIS_LEVEL - 1; l >= 0; l--) {
+          const cell = document.createElement('div');
+          if (node.level > l) {
+            const isHl = highlighted.some(h => h.nodeIdx === idx && h.level === l);
+            cell.style.cssText = `width: 80px; height: 32px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 11px; font-weight: 600; border: 1px solid ${isHl ? 'var(--accent-cyan)' : 'rgba(63, 185, 80, 0.5)'}; background: ${isHl ? 'rgba(88, 166, 255, 0.35)' : 'rgba(63, 185, 80, 0.15)'}; color: ${isHl ? '#fff' : 'var(--accent-green)'}; box-shadow: ${isHl ? '0 0 8px rgba(88, 166, 255, 0.6)' : 'none'};`;
+            cell.innerText = l === 0 ? `L1 ◀▶` : `L${l + 1} ➔`;
+          } else {
+            cell.style.cssText = 'width: 80px; height: 32px; border: 1px dashed rgba(255,255,255,0.05); border-radius: 4px;';
+          }
+          col.appendChild(cell);
+        }
+
+        const foot = document.createElement('div');
+        foot.style.cssText = 'font-size: 11px; font-family: var(--font-mono); text-align: center; margin-top: 4px; color: #fff;';
+        foot.innerHTML = `<strong>${node.member}</strong><br><span style="color: var(--accent-cyan);">${node.score}</span>`;
+        col.appendChild(foot);
+
+        container.appendChild(col);
+      });
+    }
+
     // Initialize on load
     window.addEventListener('DOMContentLoaded', () => {
       calculateSlot();
@@ -960,6 +1170,7 @@ Client channel readable. Ready to invoke readIntoBuffer()...
       drawBacklogRing();
       initEvictionGrid();
       initHllGrid();
+      uiLoadSampleLeaderboard();
     });
   </script>
 </body>

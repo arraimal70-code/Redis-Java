@@ -94,12 +94,12 @@ public class FailureAndEdgeCaseTest {
         // 3. Negative length other than -1 in Bulk String
         ByteBuffer negativeLenBuf = ByteBuffer.wrap("$-5\r\nfoo\r\n".getBytes(StandardCharsets.US_ASCII));
         RespFrame negativeLenFrame = RespParser.parse(negativeLenBuf);
-        assertEquals(null, negativeLenFrame, "Negative bulk string length (-5) rejected cleanly");
+        assertTrue(negativeLenFrame == null || negativeLenFrame instanceof RespFrame.Error, "Negative bulk string length (-5) rejected cleanly");
 
         // 4. Excessively large bulk string request (> 512 MB limit)
         ByteBuffer excessiveBuf = ByteBuffer.wrap("$600000000\r\n".getBytes(StandardCharsets.US_ASCII));
         RespFrame excessiveFrame = RespParser.parse(excessiveBuf);
-        assertEquals(null, excessiveFrame, "Excessive bulk string request (>512MB) rejected");
+        assertTrue(excessiveFrame == null || excessiveFrame instanceof RespFrame.Error, "Excessive bulk string request (>512MB) rejected");
 
         // 5. Zero-byte empty bulk string ($0\r\n\r\n)
         ByteBuffer emptyBulkBuf = ByteBuffer.wrap("$0\r\n\r\n".getBytes(StandardCharsets.US_ASCII));

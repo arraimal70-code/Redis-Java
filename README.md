@@ -3,7 +3,7 @@
 [![CI Pipeline](https://github.com/arraimal70-code/Redis-Java/actions/workflows/ci.yml/badge.svg)](https://github.com/arraimal70-code/Redis-Java/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Java 21+](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://openjdk.org/projects/jdk/21/)
-[![Tests: 140 Passed](https://img.shields.io/badge/Tests-140%20Passed-brightgreen.svg)](#test-suite--chaos-resilience)
+[![Tests: 172 Passed](https://img.shields.io/badge/Tests-172%20Passed-brightgreen.svg)](#test-suite--chaos-resilience)
 
 An experimental, high-performance in-memory key-value data store and caching engine engineered from the ground up in **Core Java 21**. 
 
@@ -17,7 +17,8 @@ For comprehensive systems engineering analyses, architectural designs, and inter
 
 | Document | Description |
 | :--- | :--- |
-| [`docs/interactive-architecture.html`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/interactive-architecture.html) | **Interactive Architecture Lab:** Browser-based diagnostic workbench with live NIO reactor simulator, 16,384-slot CRC16 ring visualizer, replication backlog inspector, and 10Hz eviction simulator. |
+| [`docs/BRUTAL_TESTING_AND_VERIFICATION.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/BRUTAL_TESTING_AND_VERIFICATION.md) | **Brutal Testing & Formal Invariants:** Byte-level TCP fragmentation fuzzing, 100-thread CAS race torture, William Pugh SkipList proofs, and active TTL saturation. |
+| [`docs/interactive-architecture.html`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/interactive-architecture.html) | **Interactive Architecture Lab:** Browser-based diagnostic workbench with live NIO reactor simulator, SkipList visualizer, 16,384-slot CRC16 ring visualizer, replication backlog inspector, and 10Hz eviction simulator. |
 | [`docs/BENCHMARKING.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/BENCHMARKING.md) | Nanosecond-resolution empirical measurements, concurrency sweeps (1-100), pipelining depth sweeps (1-64), and latency histograms. |
 | [`docs/REAL_WORLD_IMPACT.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/REAL_WORLD_IMPACT.md) | Empirical evaluation of the engine as a Semantic Prompt Cache for AI inference gateways (400.8x speedup). |
 | [`docs/FAILURE_MODES.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/FAILURE_MODES.md) | Chaos test suite results: corrupted AOF recovery, RDB header rejection, 64-bit integer overflow, and buffer flood limits. |
@@ -86,7 +87,8 @@ graph TD
 - **Frame Hardening:** Arithmetic 64-bit integer overflow protection and caps at 512MB for bulk strings and 1,000,000 for array frames.
 
 ### 3. In-Memory Store & Advanced Data Primitives
-- **Typed In-Memory Objects:** Supports `STRING`, `LIST`, `HASH`, `STREAM`, `BITMAP`, and `HYPERLOGLOG` data structures.
+- **Typed In-Memory Objects:** Supports `STRING`, `LIST`, `HASH`, `SET`, `ZSET`, `STREAM`, `BITMAP`, and `HYPERLOGLOG` data structures.
+- **William Pugh SkipList & Sorted Sets (`ZSET`):** Full 32-level probabilistic SkipList ($p = 0.25$) paired with $O(1)$ Hash Map. Forward pointers carry distance spans enabling $O(\log N)$ rank, revrank, and range queries (`ZADD`, `ZSCORE`, `ZCARD`, `ZCOUNT`, `ZRANK`, `ZREVRANK`, `ZRANGE`, `ZREVRANGE`, `ZREM`). Level 0 maintains bidirectional pointers for backward iteration.
 - **Append-Only Redis Streams:** Radix/log-backed events with monotonic millisecond IDs (`<msTime>-<seq>`), field-value tuples, and continuous range querying (`XADD`, `XLEN`, `XRANGE`).
 - **Probabilistic HyperLogLog (Flajolet et al.):** 64-register cardinal estimator with 64-bit hashing, harmonic mean aggregation, and small-cardinality linear counting ($O(1)$ memory of 64 bytes per set; `PFADD`, `PFCOUNT`).
 - **Bitmaps / Bitfields:** Direct byte-array bit manipulation for high-efficiency daily active user tracking and membership flags (`SETBIT`, `GETBIT`, `BITCOUNT`).
@@ -99,10 +101,10 @@ graph TD
 - **`MULTI` / `EXEC` / `DISCARD`:** Queues commands and commits them atomically without client interleaving.
 - **`WATCH`:** Tracks monotonic key versions. If another client alters a watched key prior to `EXEC`, the transaction aborts cleanly, returning a Null Array (`*-1\r\n`).
 
-### 5. Master-Replica Stream Replication
+### 5. Master-Replica Stream Replication & Pub/Sub
 - **Replication Backlog:** Fixed circular ring buffer (1MB) storing write stream byte deltas.
 - **`PSYNC` Handshake:** Handles full resynchronization (`+FULLRESYNC`) and partial resynchronization (`+CONTINUE`) using 64-bit monotonic offsets.
-- **Replication Stream:** Master asynchronously broadcasts all write mutations down persistent non-blocking replica sockets.
+- **Pattern-Based Pub/Sub (`PSUBSCRIBE` / `PUNSUBSCRIBE`):** Full glob wildcard matching (`*`, `?`, `[abc]`) with linear-time delivery and compliant 4-element `pmessage` framing.
 
 ### 6. Cluster Sharding Simulation
 - **16,384 Hash Slots:** Deterministically partitioned using standard **CRC16-CCITT**.
@@ -111,7 +113,7 @@ graph TD
 
 ### 7. Dual-Layer Persistence & Dynamic Log Compaction
 - **Append-Only File (AOF):** Write-ahead logging in RESP wire format with configurable fsync policies (`ALWAYS`, `EVERYSEC`, `NO`) and startup recovery that gracefully recovers from truncated logs.
-- **Log Compaction (`BGREWRITEAOF`):** Asynchronously rewrites mutation logs into a minimal point-in-time state using atomic file replacement (`ATOMIC_MOVE`).
+- **Log Compaction (`BGREWRITEAOF`):** Asynchronously rewrites mutation logs into a minimal point-in-time state using atomic file replacement (`ATOMIC_MOVE`). Full support for Strings, Lists, Hashes, and Sorted Sets.
 - **Database Snapshots (RDB):** Compact binary point-in-time memory snapshot with `REDIS0009` header, type opcodes, millisecond expiry timestamps, and atomic file replacement.
 
 ---
@@ -121,6 +123,7 @@ graph TD
 | Category | Commands Supported |
 | :--- | :--- |
 | **Strings** | `SET` (with `EX` / `PX` options), `GET`, `INCR`, `MSET`, `MGET` |
+| **Sorted Sets (ZSet)** | `ZADD`, `ZSCORE`, `ZCARD`, `ZCOUNT`, `ZRANK`, `ZREVRANK`, `ZRANGE`, `ZREVRANGE`, `ZREM` |
 | **Bitmaps** | `SETBIT`, `GETBIT`, `BITCOUNT` |
 | **HyperLogLog** | `PFADD`, `PFCOUNT` |
 | **Streams** | `XADD`, `XLEN`, `XRANGE` |
@@ -128,7 +131,7 @@ graph TD
 | **Hashes** | `HSET`, `HGET`, `HGETALL` |
 | **Lists** | `LPUSH`, `RPUSH`, `LPOP`, `RPOP`, `LLEN` |
 | **Transactions** | `MULTI`, `EXEC`, `DISCARD`, `WATCH`, `UNWATCH` |
-| **Pub/Sub** | `PUBLISH`, `SUBSCRIBE`, `UNSUBSCRIBE` |
+| **Pub/Sub** | `PUBLISH`, `SUBSCRIBE`, `UNSUBSCRIBE`, `PSUBSCRIBE`, `PUNSUBSCRIBE` |
 | **Replication** | `REPLICAOF`, `SLAVEOF`, `PSYNC`, `REPLCONF` |
 | **Cluster** | `CLUSTER KEYSLOT`, `CLUSTER SLOTS`, `CLUSTER NODES` |
 | **Persistence** | `SAVE`, `BGSAVE`, `BGREWRITEAOF` |
@@ -199,13 +202,10 @@ A production-ready reference gateway is provided in [`examples/real-world/AiInfe
 
 ## Test Suite & Chaos Resilience
 
----
-
-## Test Suite & Chaos Resilience
-
-The repository maintains two comprehensive test suites totaling **140 automated test assertions**:
+The repository maintains three comprehensive test suites totaling **172 automated test assertions** across functional, failure injection, and adversarial chaos domains:
 1. **Core Integration Suite (`RedisServerTest.java`):** 82 assertions testing data types, transactions, replication handshakes, cluster routing, and persistence reload.
 2. **Failure & Chaos Suite (`FailureAndEdgeCaseTest.java`):** 58 assertions verifying recovery from corrupted AOF logs, AOF compaction (`BGREWRITEAOF`) replay, invalid RDB headers, 64-bit integer overflows, bounded buffer enforcement, batch commands (`MSET`/`MGET`), `DBSIZE`, `FLUSHDB`, `AUTH`, Bitmaps (`SETBIT`/`GETBIT`/`BITCOUNT`), HyperLogLog cardinality (`PFADD`/`PFCOUNT`), Redis Streams (`XADD`/`XLEN`/`XRANGE`), and 50-thread atomic concurrency contention.
+3. **Brutal Chaos & Torture Suite (`BrutalTortureSuite.java`):** 32 assertions subjecting the engine to byte-level TCP packet fragmentation fuzzing, 100-thread CAS race torture, William Pugh SkipList distance span & rank invariant proofs (2,000 randomized operations), glob pattern Pub/Sub fuzzing (`PSUBSCRIBE`), and high-velocity active 10Hz TTL expiration saturation.
 
 ```cmd
 # Run complete test suite (Windows)
@@ -219,6 +219,7 @@ scripts\chaos_cluster_test.bat
 javac -d bin -cp "bin" $(find src test -name "*.java")
 java -cp "bin" com.redisclone.RedisServerTest
 java -cp "bin" com.redisclone.FailureAndEdgeCaseTest
+java -cp "bin" com.redisclone.BrutalTortureSuite
 ```
 
 ---

@@ -172,13 +172,18 @@ public class ClientConnection {
     }
 
     // --- Pub/Sub State ---
+    private final Set<String> subscribedPatterns = Collections.synchronizedSet(new HashSet<>());
 
     public boolean isSubscribed() {
-        return !subscribedChannels.isEmpty();
+        return !subscribedChannels.isEmpty() || !subscribedPatterns.isEmpty();
     }
 
     public Set<String> getSubscribedChannels() {
         return subscribedChannels;
+    }
+
+    public Set<String> getSubscribedPatterns() {
+        return subscribedPatterns;
     }
 
     public void addSubscription(String channelName) {
@@ -187,6 +192,14 @@ public class ClientConnection {
 
     public void removeSubscription(String channelName) {
         subscribedChannels.remove(channelName);
+    }
+
+    public void addPatternSubscription(String pattern) {
+        subscribedPatterns.add(pattern);
+    }
+
+    public void removePatternSubscription(String pattern) {
+        subscribedPatterns.remove(pattern);
     }
 
     public void close() {

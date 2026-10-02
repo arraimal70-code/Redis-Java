@@ -96,4 +96,16 @@ public class RedisObject {
         }
         return (List<StreamEntry>) value;
     }
+
+    // --- Helpers for ZSET ---
+    public static RedisObject ofZSet() {
+        return new RedisObject(RedisType.ZSET, new SortedSet());
+    }
+
+    public SortedSet asZSet() {
+        if (type != RedisType.ZSET) {
+            throw new IllegalStateException("WRONGTYPE Operation against a key holding the wrong kind of value");
+        }
+        return (SortedSet) value;
+    }
 }

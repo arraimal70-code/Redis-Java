@@ -67,4 +67,43 @@ public class PubSubCommands {
             return null;
         }
     }
+
+    public static class PSubscribeCommand implements Command {
+        @Override
+        public RespFrame execute(CommandContext ctx, List<byte[]> args) {
+            if (args.isEmpty()) {
+                return RespFrame.ofError("ERR wrong number of arguments for 'psubscribe' command");
+            }
+            if (ctx.getClient() == null) {
+                return RespFrame.ofError("ERR client connection context missing");
+            }
+
+            for (byte[] arg : args) {
+                String pattern = new String(arg, StandardCharsets.UTF_8);
+                ctx.getPubSubManager().psubscribe(ctx.getClient(), pattern);
+            }
+            return null;
+        }
+    }
+
+    public static class PUnsubscribeCommand implements Command {
+        @Override
+        public RespFrame execute(CommandContext ctx, List<byte[]> args) {
+            if (ctx.getClient() == null) {
+                return RespFrame.ofError("ERR client connection context missing");
+            }
+
+            if (args.isEmpty()) {
+                for (String pattern : List.copyOf(ctx.getClient().getSubscribedPatterns())) {
+                    ctx.getPubSubManager().punsubscribe(ctx.getClient(), pattern);
+                }
+            } else {
+                for (byte[] arg : args) {
+                    String pattern = new String(arg, StandardCharsets.UTF_8);
+                    ctx.getPubSubManager().punsubscribe(ctx.getClient(), pattern);
+                }
+            }
+            return null;
+        }
+    }
 }
