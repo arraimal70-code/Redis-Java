@@ -17,6 +17,12 @@ For comprehensive systems engineering analyses, architectural designs, and inter
 
 | Document | Description |
 | :--- | :--- |
+| [**`docs/README.md`**](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/README.md) | **Master Documentation Hub:** Central navigation portal with role-based pathways for Developers, DevOps/SREs, Architects, and Researchers. |
+| [**`docs/COMMAND_REFERENCE.md`**](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/COMMAND_REFERENCE.md) | **47-Command Reference Manual:** Complete syntax, parameters, algorithmic complexity ($O(1)$, $O(\log N)$), wire response format, error modes, and interactive CLI examples. |
+| [**`docs/OPERATIONS_AND_CONFIGURATION_GUIDE.md`**](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/OPERATIONS_AND_CONFIGURATION_GUIDE.md) | **Production Operations & Tuning:** CLI flags, Java 21 Generational ZGC runtime tuning, host OS sysctl optimizations, telemetry parsing, and disaster recovery runbooks. |
+| [**`docs/INTERNALS_DEEP_DIVE.md`**](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/INTERNALS_DEEP_DIVE.md) | **Systems Engineering Deep Dive:** Detailed analysis of Java NIO Reactor multiplexing, zero-allocation RESP state machine, SkipList span mechanics, HLL registers, streams, and AOF compaction. |
+| [**`docs/CLIENT_INTEGRATION_GUIDE.md`**](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/CLIENT_INTEGRATION_GUIDE.md) | **Client SDKs & Application Patterns:** Integration guides for Java (Jedis/Lettuce), Python (redis-py), Node.js, Go, raw TCP sockets, rate limiters, and prompt caches. |
+| [**`docs/DEVELOPER_CONTRIBUTING_GUIDE.md`**](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/DEVELOPER_CONTRIBUTING_GUIDE.md) | **Contributor & Extension Guide:** Step-by-step tutorial on implementing custom commands in 15 minutes, test harnesses, and microbenchmarks. |
 | [`docs/BRUTAL_TESTING_AND_VERIFICATION.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/BRUTAL_TESTING_AND_VERIFICATION.md) | **Brutal Testing & Formal Invariants:** Byte-level TCP fragmentation fuzzing, 100-thread CAS race torture, William Pugh SkipList proofs, and active TTL saturation. |
 | [`docs/interactive-architecture.html`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/interactive-architecture.html) | **Interactive Architecture Lab:** Browser-based diagnostic workbench with live NIO reactor simulator, SkipList visualizer, 16,384-slot CRC16 ring visualizer, replication backlog inspector, and 10Hz eviction simulator. |
 | [`docs/BENCHMARKING.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/BENCHMARKING.md) | Nanosecond-resolution empirical measurements, concurrency sweeps (1-100), pipelining depth sweeps (1-64), and latency histograms. |
@@ -249,18 +255,23 @@ java -cp bin com.redisclone.server.RedisServer --port 6379 --aof true --rdb true
 ```
 
 ### Running Real-World Reference Applications
-```cmd
-# 1. Semantic AI Inference Prompt Cache (400.8x speedup)
-java -cp bin com.redisclone.examples.AiInferenceCache
 
-# 2. Distributed Sliding-Window API Rate Limiter
-java -cp bin com.redisclone.examples.DistributedRateLimiter
-```
-# Terminal 1: Start Redis clone
+#### 1. Semantic AI Inference Prompt Cache (400.8x speedup)
+```cmd
+# Terminal 1: Start Redis clone instance
 java -cp bin com.redisclone.server.RedisServer --port 6388
 
 # Terminal 2: Run AI gateway simulation
 java -cp bin com.redisclone.examples.AiInferenceCache --port 6388 --requests 60
+```
+
+#### 2. Distributed Sliding-Window API Rate Limiter
+```cmd
+# Terminal 1: Start Redis clone instance
+java -cp bin com.redisclone.server.RedisServer --port 6379
+
+# Terminal 2: Run Rate Limiter simulation
+java -cp bin com.redisclone.examples.DistributedRateLimiter --port 6379
 ```
 
 ### Running the Systems Benchmark Suite
@@ -273,7 +284,7 @@ java -cp bin com.redisclone.benchmark.RedisBenchmark --port 6388 --suite --out-d
 ## Known Limitations
 
 1. **Linux `fork()` vs Java JVM Snapshots:** Official C Redis invokes POSIX `fork()` for copy-on-write RDB snapshotting. In Java, memory snapshots are serialized directly via safe concurrent iterators (`ConcurrentHashMap`), avoiding OS fork latency but requiring concurrent memory coordination.
-2. **Security & Access Control:** The server currently does not implement password authentication (`AUTH`) or Access Control Lists (`ACL`). The engine is designed for isolated private subnets or localhost loopback environments.
+2. **Security & Access Control:** The server implements standard password authentication (`AUTH`), but does not implement fine-grained Access Control Lists (`ACL`) or direct TLS encryption in the reactor core. The engine is designed for isolated private subnets, service-mesh mTLS proxies (e.g. Envoy), or localhost loopback environments.
 3. **Cluster Failover Consensus:** The cluster simulation implements CRC16 slot routing and client-side `-MOVED` redirection, but does not implement full multi-node Gossip protocol heartbeat monitoring or automated Raft-based shard election.
 
 ---

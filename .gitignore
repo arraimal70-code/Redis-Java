@@ -28,7 +28,6 @@ Thumbs.db
 desktop.ini
 
 # Excluded personal/scratch files
-index.html
 self-learning-agent/
 .env
 .env.*
