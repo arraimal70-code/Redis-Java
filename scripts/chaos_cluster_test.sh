@@ -37,6 +37,7 @@ javac -d bin -cp "bin" @test_sources.txt
 rm -f test_sources.txt
 java -cp bin com.redisclone.RedisServerTest
 java -cp bin com.redisclone.FailureAndEdgeCaseTest
+java -cp bin com.redisclone.AdversarialTest
 
 echo "[5/5] Executing Low-Level Microbenchmark Suite..."
 java -cp bin com.redisclone.benchmark.MicrobenchmarkSuite

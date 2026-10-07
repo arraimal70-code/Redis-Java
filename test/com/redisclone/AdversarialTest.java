@@ -14,25 +14,25 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * BRUTAL TORTURE & CHAOS TEST HARNESS (GOD LEVEL)
+ * Adversarial and Stress Test Suite.
  *
- * Subjecting the Core Java 21 Redis clone to extreme conditions:
+ * Subjecting the Core Java 21 Redis engine to boundary and stress conditions:
  * 1. Byte-by-byte TCP packet fragmentation fuzzing.
- * 2. 100-thread concurrent CAS & atomic mutation race torture.
+ * 2. 100-thread concurrent CAS & atomic mutation race testing.
  * 3. William Pugh SkipList span & rank invariant verification (2,000 randomized operations).
  * 4. Pattern-based Pub/Sub (PSUBSCRIBE) glob matching under stress.
  * 5. High-velocity active TTL expiration saturation.
- * 6. Protocol malformation & 16MB buffer DoS boundary defenses.
+ * 6. Protocol malformation & 16MB buffer boundary defenses.
  */
-public class BrutalTortureSuite {
+public class AdversarialTest {
 
     private static int passedTests = 0;
     private static int totalTests = 0;
 
     public static void main(String[] args) throws Exception {
         System.out.println("================================================================================");
-        System.out.println(" RUNNING GOD-LEVEL BRUTAL TORTURE & CHAOS TEST HARNESS");
-        System.out.println(" Testing Core Java 21 Engine Under Hostile & Adversarial Workloads");
+        System.out.println(" RUNNING ADVERSARIAL AND STRESS TEST SUITE");
+        System.out.println(" Testing Core Java 21 Engine Under Adversarial Workloads");
         System.out.println("================================================================================");
 
         testSkipListInvariantsAndRankSpans();
@@ -43,7 +43,7 @@ public class BrutalTortureSuite {
         testProtocolMalformationAndBufferDefense();
 
         System.out.println("================================================================================");
-        System.out.println(" 🔥 ALL BRUTAL TORTURE TESTS PASSED: " + passedTests + " / " + totalTests);
+        System.out.println(" ALL ADVERSARIAL TESTS PASSED: " + passedTests + " / " + totalTests);
         System.out.println("================================================================================");
     }
 
@@ -62,9 +62,9 @@ public class BrutalTortureSuite {
         assertEquals(true, condition, testName);
     }
 
-    // --- 1. SKIPLIST INVARIANT & SPAN TORTURE ---
+    // --- 1. SKIPLIST INVARIANT & SPAN VERIFICATION ---
     private static void testSkipListInvariantsAndRankSpans() {
-        System.out.println("\n--- [Torture Test 1] William Pugh SkipList Rank Spans & Invariants ---");
+        System.out.println("\n--- [Adversarial Test 1] William Pugh SkipList Rank Spans & Invariants ---");
         SkipList sl = new SkipList();
         SortedSet zset = new SortedSet();
         Random rnd = new Random(42);
@@ -142,7 +142,7 @@ public class BrutalTortureSuite {
 
     // --- 2. BYTE-BY-BYTE TCP PACKET FRAGMENTATION FUZZING ---
     private static void testByteLevelTcpFragmentationFuzzing() throws Exception {
-        System.out.println("\n--- [Torture Test 2] Byte-Level TCP Packet Fragmentation Fuzzing ---");
+        System.out.println("\n--- [Adversarial Test 2] Byte-Level TCP Packet Fragmentation Fuzzing ---");
         int port = 6400;
         ServerConfig config = new ServerConfig();
         config.setPort(port);
@@ -204,9 +204,9 @@ public class BrutalTortureSuite {
         }
     }
 
-    // --- 3. 100-THREAD CONCURRENT CAS & ATOMIC MUTATION TORTURE ---
+    // --- 3. 100-THREAD CONCURRENT CAS & ATOMIC MUTATION STRESS ---
     private static void testExtremeConcurrencyAndAtomicity() throws Exception {
-        System.out.println("\n--- [Torture Test 3] 100-Thread Concurrent CAS & Atomic Mutation Torture ---");
+        System.out.println("\n--- [Adversarial Test 3] 100-Thread Concurrent CAS & Atomic Mutation Stress ---");
         int port = 6401;
         ServerConfig config = new ServerConfig();
         config.setPort(port);
@@ -317,7 +317,7 @@ public class BrutalTortureSuite {
 
     // --- 4. PATTERN-BASED PUB/SUB (PSUBSCRIBE) GLOB MATCHING ---
     private static void testPatternPubSubGlobMatching() throws Exception {
-        System.out.println("\n--- [Torture Test 4] Pattern-Based Pub/Sub (PSUBSCRIBE) Glob Matching ---");
+        System.out.println("\n--- [Adversarial Test 4] Pattern-Based Pub/Sub (PSUBSCRIBE) Glob Matching ---");
         int port = 6402;
         ServerConfig config = new ServerConfig();
         config.setPort(port);
@@ -377,7 +377,7 @@ public class BrutalTortureSuite {
 
     // --- 5. HIGH-VELOCITY ACTIVE TTL EXPIRATION SATURATION ---
     private static void testHighVelocityActiveTtlExpiration() throws Exception {
-        System.out.println("\n--- [Torture Test 5] High-Velocity Active TTL Expiration Saturation ---");
+        System.out.println("\n--- [Adversarial Test 5] High-Velocity Active TTL Expiration Saturation ---");
         int port = 6403;
         ServerConfig config = new ServerConfig();
         config.setPort(port);
@@ -435,7 +435,7 @@ public class BrutalTortureSuite {
 
     // --- 6. PROTOCOL MALFORMATION & 16MB BUFFER BOUNDARY DEFENSE ---
     private static void testProtocolMalformationAndBufferDefense() throws Exception {
-        System.out.println("\n--- [Torture Test 6] Protocol Malformation & 16MB Buffer Boundary Defense ---");
+        System.out.println("\n--- [Adversarial Test 6] Protocol Malformation & 16MB Buffer Boundary Defense ---");
         int port = 6404;
         ServerConfig config = new ServerConfig();
         config.setPort(port);
