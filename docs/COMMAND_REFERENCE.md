@@ -1,6 +1,6 @@
-# Redis Clone: Comprehensive Command Reference Manual
+# Redis Clone: Command Reference Manual
 
-This document provides the definitive, production-grade specification for all **47 commands** supported by the Core Java 21 Redis Clone engine. Every entry documents syntax, arguments, time complexity, RESP2 wire format return types, edge cases, error conditions, and concrete interactive examples.
+This document provides reference documentation for all **47 commands** supported by the Core Java 21 Redis clone engine. Every entry documents syntax, arguments, time complexity, RESP2 wire format return types, edge cases, error conditions, and interactive examples.
 
 ---
 

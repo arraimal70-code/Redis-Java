@@ -50,15 +50,21 @@ flowchart LR
 - **Threat:** HTTP Request Smuggling or RESP pipelining injection where HTTP payloads are sent to port 6379, embedding hidden Redis commands in POST bodies.
 - **Mitigation:** The parser strictly validates the initial byte of every frame (`+`, `-`, `:`, `$`, `*`). Non-RESP characters (such as HTTP verbs `POST`, `GET / HTTP/1.1`) cause instant parsing failure and disconnect the client, preventing smuggling attacks.
 
+### 2.5 Persistence File Corruption Defense
+- **Threat:** Abrupt power failure or crash during write operations causing partial, corrupted bytes at the tail of `appendonly.aof` or an incomplete `dump.rdb` snapshot.
+- **Mitigation:**
+  - *AOF Replay Recovery:* `AofManager.replay()` uses stream decoding checkpoints. If EOF is reached mid-frame, it logs a warning, commits all preceding complete commands, and resumes safely.
+  - *RDB Validation:* `RdbManager.load()` strictly validates the 9-byte magic header (`REDIS0009`) and opcode sequences. Malformed snapshots are safely rejected without crashing the node.
+
 ---
 
 ## 3. Current Security Boundaries & Explicit Limitations
 
-To maintain academic honesty and transparent engineering standards, the following security features are **not currently implemented** in this engine:
+To maintain transparent engineering standards, the following security features are **not currently implemented** in this engine:
 
-1. **Authentication (AUTH / ACLs):** The server does not currently evaluate password authentication or user role access control lists. Any client with network connectivity to the listening port has full access to the keyspace.
-2. **Transport Layer Security (TLS/SSL):** Traffic across the TCP socket is transmitted in unencrypted plaintext RESP format.
-3. **Command Renaming / Disabling:** High-risk operational commands (`FLUSHALL`, `SHUTDOWN`, `CONFIG`) cannot currently be disabled or renamed via configuration.
+1. **Authentication (AUTH / ACLs):** While the `AUTH` command is accepted for client compatibility, password verification and fine-grained Access Control Lists (ACLs) are not enforced. Any client with TCP access has full keyspace access.
+2. **Transport Layer Security (TLS/SSL):** TCP communication is unencrypted plaintext RESP.
+3. **Command Renaming / Disabling:** Operational commands (`FLUSHALL`, `FLUSHDB`) cannot be renamed or disabled via configuration flags.
 
 ---
 
