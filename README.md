@@ -3,289 +3,248 @@
 [![CI Pipeline](https://github.com/arraimal70-code/Redis-Java/actions/workflows/ci.yml/badge.svg)](https://github.com/arraimal70-code/Redis-Java/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Java 21+](https://img.shields.io/badge/Java-21%2B-orange.svg)](https://openjdk.org/projects/jdk/21/)
-[![Tests: 172 Passed](https://img.shields.io/badge/Tests-172%20Passed-brightgreen.svg)](#test-suite--chaos-resilience)
 
-An experimental, high-performance in-memory key-value data store and caching engine engineered from the ground up in **Core Java 21**. 
+An in-memory key-value data store implemented from scratch in **Core Java 21**, conforming to the Redis Serialization Protocol (RESP2).
 
-Designed without third-party frameworks (no Netty, Spring, Grizzly, or external serialization libraries), the system relies directly on operating system primitives via Java NIO non-blocking socket selectors (`Selector`), direct byte buffers (`ByteBuffer`), and mechanical sympathy with the host network stack.
-
----
-
-## Technical Index & Documentation Suite
-
-For comprehensive systems engineering analyses, architectural designs, and interview defenses, consult the dedicated technical documents:
-
-| Document | Description |
-| :--- | :--- |
-| [**`docs/README.md`**](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/README.md) | **Master Documentation Hub:** Central navigation portal with role-based pathways for Developers, DevOps/SREs, Architects, and Researchers. |
-| [**`docs/COMMAND_REFERENCE.md`**](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/COMMAND_REFERENCE.md) | **47-Command Reference Manual:** Complete syntax, parameters, algorithmic complexity ($O(1)$, $O(\log N)$), wire response format, error modes, and interactive CLI examples. |
-| [**`docs/OPERATIONS_AND_CONFIGURATION_GUIDE.md`**](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/OPERATIONS_AND_CONFIGURATION_GUIDE.md) | **Production Operations & Tuning:** CLI flags, Java 21 Generational ZGC runtime tuning, host OS sysctl optimizations, telemetry parsing, and disaster recovery runbooks. |
-| [**`docs/INTERNALS_DEEP_DIVE.md`**](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/INTERNALS_DEEP_DIVE.md) | **Systems Engineering Deep Dive:** Detailed analysis of Java NIO Reactor multiplexing, zero-allocation RESP state machine, SkipList span mechanics, HLL registers, streams, and AOF compaction. |
-| [**`docs/CLIENT_INTEGRATION_GUIDE.md`**](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/CLIENT_INTEGRATION_GUIDE.md) | **Client SDKs & Application Patterns:** Integration guides for Java (Jedis/Lettuce), Python (redis-py), Node.js, Go, raw TCP sockets, rate limiters, and prompt caches. |
-| [**`docs/DEVELOPER_CONTRIBUTING_GUIDE.md`**](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/DEVELOPER_CONTRIBUTING_GUIDE.md) | **Contributor & Extension Guide:** Step-by-step tutorial on implementing custom commands in 15 minutes, test harnesses, and microbenchmarks. |
-| [`docs/BRUTAL_TESTING_AND_VERIFICATION.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/BRUTAL_TESTING_AND_VERIFICATION.md) | **Brutal Testing & Formal Invariants:** Byte-level TCP fragmentation fuzzing, 100-thread CAS race torture, William Pugh SkipList proofs, and active TTL saturation. |
-| [`docs/interactive-architecture.html`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/interactive-architecture.html) | **Interactive Architecture Lab:** Browser-based diagnostic workbench with live NIO reactor simulator, SkipList visualizer, 16,384-slot CRC16 ring visualizer, replication backlog inspector, and 10Hz eviction simulator. |
-| [`docs/BENCHMARKING.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/BENCHMARKING.md) | Nanosecond-resolution empirical measurements, concurrency sweeps (1-100), pipelining depth sweeps (1-64), and latency histograms. |
-| [`docs/REAL_WORLD_IMPACT.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/REAL_WORLD_IMPACT.md) | Empirical evaluation of the engine as a Semantic Prompt Cache for AI inference gateways (400.8x speedup). |
-| [`docs/FAILURE_MODES.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/FAILURE_MODES.md) | Chaos test suite results: corrupted AOF recovery, RDB header rejection, 64-bit integer overflow, and buffer flood limits. |
-| [`docs/SECURITY.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/SECURITY.md) | Threat model, bounded buffer limits (16MB read / 32MB write), protocol injection defense, and network isolation guidelines. |
-| [`docs/ARCHITECTURE.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/ARCHITECTURE.md) | End-to-end architecture breakdown, Mermaid sequence diagrams, memory layouts, and subsystem interactions. |
-| [`docs/DESIGN_DECISIONS.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/DESIGN_DECISIONS.md) | Formal Architecture Decision Records (ADR 001 - ADR 005) detailing design rationale and tradeoffs. |
-| [`docs/INTERVIEW_QUESTIONS.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/INTERVIEW_QUESTIONS.md) | 50+ rigorous systems engineering interview questions covering NIO, memory models, WAL persistence, and replication. |
-| [`docs/ATTRIBUTION_AND_ORIGIN.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/ATTRIBUTION_AND_ORIGIN.md) | Academic honesty disclosure, provenance declaration, and comparison with official Redis (C) and Netty. |
-| [`docs/PORTFOLIO_SUMMARY.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/PORTFOLIO_SUMMARY.md) | Graduate admissions summaries (Stanford / MIT / CMU) and staff-level engineering resume bullets. |
-| [`docs/ENGINEERING_AUDIT.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/ENGINEERING_AUDIT.md) | Complete codebase audit, invariant proofs, and structural refactoring logs. |
+The implementation relies strictly on the Java standard library (`java.nio`, `java.util.concurrent`, `java.io`, `java.net`) with **zero third-party runtime dependencies**. It implements non-blocking socket multiplexing via Java NIO `Selector`, a streaming state-machine RESP parser, dual-mode key expiration, LRU eviction, transactions, dual persistence engines (AOF + RDB), master-replica stream replication, and cluster hash-slot routing.
 
 ---
 
-## Why I Built This
-
-Most software engineers interact with caching systems and in-memory stores as opaque black boxes. This project was built from scratch to study and implement low-level systems mechanics:
-- **Operating Systems & I/O Multiplexing:** How non-blocking socket selectors (`select`/`epoll`) eliminate thread-per-connection OS stack overhead.
-- **Protocol Engineering:** How to build a reentrant, zero-allocation streaming state machine that survives packet fragmentation and pipelining.
-- **Concurrency & Atomicity:** How single-threaded event loops guarantee linearizable sequential consistency without lock contention.
-- **Distributed Durability:** How write-ahead logging (WAL) with configurable `fsync()` policies guarantees durability across physical power failures.
-
----
-
-## System Architecture
+## Architecture Overview
 
 ```mermaid
 graph TD
-    Client1["TCP Client (redis-cli / Jedis)"] -->|TCP Stream| NioEventLoop["NioEventLoop (Java NIO Selector)"]
-    Client2["TCP Client (Pub/Sub Subscriber)"] -->|TCP Stream| NioEventLoop
+    Client["TCP Client (redis-cli / Jedis / Lettuce / redis-py)"] -->|TCP Stream| NioEventLoop["NioEventLoop (Java NIO Selector)"]
 
     subgraph Server Core [Single-Threaded Reactor]
         NioEventLoop -->|Socket Reads & Writes| ClientConn["ClientConnection (Direct ByteBuffers)"]
-        ClientConn -->|Fragmented Bytes| RespParser["RespParser (Streaming State Machine)"]
+        ClientConn -->|Raw Byte Stream| RespParser["RespParser (Streaming State Machine)"]
         RespParser -->|RespFrame.Array| CommandRegistry["CommandRegistry (Dispatcher)"]
 
-        CommandRegistry -->|Commands| DataStore["DataStore (In-Memory Engine)"]
-        CommandRegistry -->|MULTI / EXEC / WATCH| TxContext["TransactionContext (ACID / CAS)"]
-        CommandRegistry -->|SUBSCRIBE / PUBLISH| PubSub["PubSubManager (Channel Registry)"]
+        CommandRegistry -->|Read / Write| DataStore["DataStore (In-Memory KeySpace)"]
+        CommandRegistry -->|MULTI / EXEC / WATCH| TxContext["TransactionContext (Transactions)"]
+        CommandRegistry -->|SUBSCRIBE / PUBLISH| PubSub["PubSubManager (Pub/Sub)"]
         CommandRegistry -->|Write Mutations| AofWriter["AofManager (Append-Only File)"]
         CommandRegistry -->|Write Mutations| ReplManager["ReplicationManager (Master Stream)"]
 
-        EvictionEngine["EvictionEngine (10Hz Daemon)"] -->|activeExpireCycle| DataStore
-        LruEngine["LruEvictionPolicy (Approximated LRU)"] -->|Capacity Exceeded| DataStore
+        EvictionEngine["EvictionEngine (10Hz Active Sweep)"] -->|activeExpireCycle| DataStore
+        LruEngine["LruEvictionPolicy (LRU Eviction)"] -->|maxkeys reached| DataStore
         RdbEngine["RdbManager (SAVE / BGSAVE)"] -->|Binary Snapshot| DataStore
     end
 
-    ReplManager -->|Async Stream| Replica1["Replica Node (Port 6380)"]
+    ReplManager -->|Async Stream| Replica["Replica Node"]
     AofWriter -->|fsync everysec / always| DiskAOF[("appendonly.aof")]
     RdbEngine -->|atomic move| DiskRDB[("dump.rdb")]
-    DataStore -->|Responses| RespEncoder["RespEncoder (Zero-Allocation Framing)"]
+    DataStore -->|Responses| RespEncoder["RespEncoder (RESP Framing)"]
     RespEncoder -->|Encoded Bytes| ClientConn
 ```
 
----
+### Key Subsystems
 
-## Core Features & Mechanisms
-
-### 1. High-Performance Networking (NIO Reactor)
-- **Java NIO Multiplexer:** Dedicated event loop running `java.nio.channels.Selector` handling `OP_ACCEPT`, `OP_READ`, and `OP_WRITE` without thread context switches.
-- **Socket Tuning:** Sets `TCP_NODELAY = true` (disabling Nagle's algorithm) to minimize round-trip delays, with `SO_REUSEADDR = true`.
-- **Bounded Buffers & Backpressure:** Enforces a 16MB maximum read buffer and a 32MB maximum pending write queue to protect against memory exhaustion denial-of-service.
-
-### 2. Streaming RESP2 Protocol Parser & Encoder
-- **Reentrant State Machine:** Parses raw bytes directly from `ByteBuffer` with rollback checkpoints (`startPos`), ensuring recovery from TCP fragmentation.
-- **Zero-Allocation Numeric Parsing:** Decodes ASCII integers and bulk lengths directly via `parseAsciiLong` without allocating intermediate `String` objects.
-- **Frame Hardening:** Arithmetic 64-bit integer overflow protection and caps at 512MB for bulk strings and 1,000,000 for array frames.
-
-### 3. In-Memory Store & Advanced Data Primitives
-- **Typed In-Memory Objects:** Supports `STRING`, `LIST`, `HASH`, `SET`, `ZSET`, `STREAM`, `BITMAP`, and `HYPERLOGLOG` data structures.
-- **William Pugh SkipList & Sorted Sets (`ZSET`):** Full 32-level probabilistic SkipList ($p = 0.25$) paired with $O(1)$ Hash Map. Forward pointers carry distance spans enabling $O(\log N)$ rank, revrank, and range queries (`ZADD`, `ZSCORE`, `ZCARD`, `ZCOUNT`, `ZRANK`, `ZREVRANK`, `ZRANGE`, `ZREVRANGE`, `ZREM`). Level 0 maintains bidirectional pointers for backward iteration.
-- **Append-Only Redis Streams:** Radix/log-backed events with monotonic millisecond IDs (`<msTime>-<seq>`), field-value tuples, and continuous range querying (`XADD`, `XLEN`, `XRANGE`).
-- **Probabilistic HyperLogLog (Flajolet et al.):** 64-register cardinal estimator with 64-bit hashing, harmonic mean aggregation, and small-cardinality linear counting ($O(1)$ memory of 64 bytes per set; `PFADD`, `PFCOUNT`).
-- **Bitmaps / Bitfields:** Direct byte-array bit manipulation for high-efficiency daily active user tracking and membership flags (`SETBIT`, `GETBIT`, `BITCOUNT`).
-- **Dual Expiration Mechanics:**
-  - *Passive (Lazy) Eviction:* Read access purges expired keys on demand.
-  - *Active Probabilistic Eviction (10Hz):* Background daemon probabilistically samples 20 keys with TTLs using $O(k)$ bounded iterator sampling, bounding expired key memory overhead below 25%.
-- **Approximated LRU Cache Eviction:** Tracks nanosecond access timestamps and evicts least recently accessed items when `maxkeys` is saturated (`allkeys-lru` / `volatile-lru`).
-
-### 4. ACID Transactions & Optimistic Concurrency Control (OCC)
-- **`MULTI` / `EXEC` / `DISCARD`:** Queues commands and commits them atomically without client interleaving.
-- **`WATCH`:** Tracks monotonic key versions. If another client alters a watched key prior to `EXEC`, the transaction aborts cleanly, returning a Null Array (`*-1\r\n`).
-
-### 5. Master-Replica Stream Replication & Pub/Sub
-- **Replication Backlog:** Fixed circular ring buffer (1MB) storing write stream byte deltas.
-- **`PSYNC` Handshake:** Handles full resynchronization (`+FULLRESYNC`) and partial resynchronization (`+CONTINUE`) using 64-bit monotonic offsets.
-- **Pattern-Based Pub/Sub (`PSUBSCRIBE` / `PUNSUBSCRIBE`):** Full glob wildcard matching (`*`, `?`, `[abc]`) with linear-time delivery and compliant 4-element `pmessage` framing.
-
-### 6. Cluster Sharding Simulation
-- **16,384 Hash Slots:** Deterministically partitioned using standard **CRC16-CCITT**.
-- **Hash Tag Support:** Evaluates `{hash_tag}` substrings so related keys map to identical slots.
-- **Client Redirection:** Emits `-MOVED <slot> <target_node_ip:port>` redirection frames when queried for unassigned slots.
-
-### 7. Dual-Layer Persistence & Dynamic Log Compaction
-- **Append-Only File (AOF):** Write-ahead logging in RESP wire format with configurable fsync policies (`ALWAYS`, `EVERYSEC`, `NO`) and startup recovery that gracefully recovers from truncated logs.
-- **Log Compaction (`BGREWRITEAOF`):** Asynchronously rewrites mutation logs into a minimal point-in-time state using atomic file replacement (`ATOMIC_MOVE`). Full support for Strings, Lists, Hashes, and Sorted Sets.
-- **Database Snapshots (RDB):** Compact binary point-in-time memory snapshot with `REDIS0009` header, type opcodes, millisecond expiry timestamps, and atomic file replacement.
+- **NIO Reactor (`com.redisclone.network`):** Single-threaded event loop utilizing `java.nio.channels.Selector` for non-blocking I/O multiplexing (`OP_ACCEPT`, `OP_READ`, `OP_WRITE`). Sockets are configured with `TCP_NODELAY` and bounded read (16MB) and write (32MB) buffers to enforce backpressure.
+- **Streaming RESP Parser (`com.redisclone.resp`):** Reentrant state machine operating directly on `ByteBuffer` slices. Checkpoint rollback recovers from TCP packet fragmentation, and direct ASCII numeric parsing avoids intermediate string allocations.
+- **In-Memory Storage (`com.redisclone.storage`):** `DataStore` backed by `ConcurrentHashMap<String, RedisObject>`. Supports Strings, Hashes, Lists, Sorted Sets (SkipList), Bitmaps, HyperLogLog, and Streams.
+- **Sorted Sets (`SkipList.java`):** William Pugh multi-level SkipList ($p = 0.25$, 32 levels) with distance spans for $O(\log N)$ rank queries (`ZRANK`, `ZREVRANK`, `ZRANGE`, `ZREVRANGE`) and Level 0 backward pointers.
+- **Expiration & Eviction (`com.redisclone.storage`):** Passive (lazy) expiration on read access combined with an active 10Hz probabilistic background sweep sampling 20 keys per cycle. Approximated LRU cache eviction when `maxkeys` is reached.
+- **Transactions (`com.redisclone.command.impl`):** Atomic command queuing via `MULTI`/`EXEC`/`DISCARD` and optimistic concurrency control (CAS) via `WATCH` with key version tracking.
+- **Dual Persistence (`com.redisclone.persistence`):**
+  - **AOF:** Append-Only File with configurable fsync policies (`ALWAYS`, `EVERYSEC`, `NO`), background log compaction (`BGREWRITEAOF`), and crash-resilient truncated log replay.
+  - **RDB:** Point-in-time binary snapshotting with `REDIS0009` header, type opcodes, millisecond expiry timestamps, and atomic file replacement.
+- **Replication (`com.redisclone.replication`):** Master-Replica command propagation using a 1MB circular byte ring buffer (`ReplicationBacklog.java`), 64-bit monotonic offsets, and `PSYNC` partial/full resynchronization handshakes.
+- **Cluster Slot Routing (`com.redisclone.cluster`):** 16,384 discrete slots partitioned via CRC16-CCITT with `{hash_tag}` extraction and `-MOVED` redirection frames.
 
 ---
 
 ## Supported Commands
 
+The server implements **47 Redis commands**:
+
 | Category | Commands Supported |
 | :--- | :--- |
-| **Strings** | `SET` (with `EX` / `PX` options), `GET`, `INCR`, `MSET`, `MGET` |
+| **Strings** | `SET` (with `EX` / `PX`), `GET`, `INCR`, `MSET`, `MGET` |
+| **Keys & Expiry** | `DEL`, `EXPIRE`, `TTL`, `EXISTS` |
+| **Hashes** | `HSET`, `HGET`, `HGETALL` |
+| **Lists** | `LPUSH`, `RPUSH`, `LPOP`, `RPOP`, `LLEN` |
 | **Sorted Sets (ZSet)** | `ZADD`, `ZSCORE`, `ZCARD`, `ZCOUNT`, `ZRANK`, `ZREVRANK`, `ZRANGE`, `ZREVRANGE`, `ZREM` |
 | **Bitmaps** | `SETBIT`, `GETBIT`, `BITCOUNT` |
 | **HyperLogLog** | `PFADD`, `PFCOUNT` |
 | **Streams** | `XADD`, `XLEN`, `XRANGE` |
-| **Keys & Expiry** | `DEL`, `EXPIRE`, `TTL`, `EXISTS` |
-| **Hashes** | `HSET`, `HGET`, `HGETALL` |
-| **Lists** | `LPUSH`, `RPUSH`, `LPOP`, `RPOP`, `LLEN` |
 | **Transactions** | `MULTI`, `EXEC`, `DISCARD`, `WATCH`, `UNWATCH` |
 | **Pub/Sub** | `PUBLISH`, `SUBSCRIBE`, `UNSUBSCRIBE`, `PSUBSCRIBE`, `PUNSUBSCRIBE` |
 | **Replication** | `REPLICAOF`, `SLAVEOF`, `PSYNC`, `REPLCONF` |
 | **Cluster** | `CLUSTER KEYSLOT`, `CLUSTER SLOTS`, `CLUSTER NODES` |
 | **Persistence** | `SAVE`, `BGSAVE`, `BGREWRITEAOF` |
-| **Operational & Telemetry** | `PING`, `ECHO`, `INFO`, `DBSIZE`, `FLUSHDB`, `FLUSHALL`, `AUTH`, `COMMAND DOCS`, `QUIT` |
+| **Utility & Info** | `PING`, `ECHO`, `INFO`, `DBSIZE`, `FLUSHDB`, `FLUSHALL`, `AUTH`, `COMMAND`, `QUIT` |
+
+For syntax, complexity, wire formats, and examples, see [`docs/COMMAND_REFERENCE.md`](docs/COMMAND_REFERENCE.md).
 
 ---
 
-## Low-Level Component Microbenchmarks
-
-Captured via `com.redisclone.benchmark.MicrobenchmarkSuite` on OpenJDK 21 Tier 4 C2 JIT compiler (nanosecond resolution across 200,000+ operations):
-
-- **Zero-Allocation RESP Numeric Parsing:**
-  - Custom direct ASCII parser: **35.3 ns/op** (28,340,253 ops/sec) with **0 byte heap allocations**.
-  - JDK standard `Long.parseLong(new String(bytes))`: **116.9 ns/op** (8,551,211 ops/sec).
-  - **Result: 3.31x speedup** with zero garbage collection pressure on the JVM Young Gen.
-- **CRC16-CCITT Cluster Slot Routing:** **125.81 ns/op** (~7.95 million slots calculated/sec).
-- **DataStore In-Memory Memory Access:**
-  - `GET` lookup latency: **721.75 ns/op** (~1.39 million reads/sec).
-  - `SET` mutation latency: **731.92 ns/op** (~1.37 million writes/sec).
-
----
-
-## Empirical Benchmarks
-
-All metrics were gathered using `RedisBenchmark.java` on OpenJDK 21 (Temurin) on a 4-core physical host (Windows 11 amd64) over localhost TCP with background persistence disabled to isolate network and memory performance. Full logs are in [`docs/BENCHMARKING.md`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/docs/BENCHMARKING.md).
-
-### Concurrency Scaling (Unpipelined, Depth 1)
-```
-================================================================================
-Concur: 1 client   | PING: 14,361 RPS | SET: 13,360 RPS | GET: 15,368 RPS (p50: 0.059 ms)
-Concur: 10 clients | PING: 22,125 RPS | SET: 17,698 RPS | GET: 20,273 RPS (p50: 0.351 ms)
-Concur: 50 clients | PING: 13,417 RPS | SET: 17,126 RPS | GET: 17,933 RPS (p50: 2.098 ms)
-================================================================================
-```
-
-### Pipelining Scaling (20 Clients, 20,000 Requests)
-```
-================================================================================
-Pipeline Depth  1:  20,196 RPS | p50: 0.822 ms | p99: 2.428 ms (1.00x Baseline)
-Pipeline Depth  4:  24,592 RPS | p50: 0.656 ms | p99: 1.501 ms (1.22x)
-Pipeline Depth 16:  35,240 RPS | p50: 0.502 ms | p99: 1.038 ms (1.74x)
-Pipeline Depth 64:  42,357 RPS | p50: 0.296 ms | p99: 3.000 ms (2.10x Speedup)
-================================================================================
-```
-
----
-
-## Real-World Reference Application: AI Inference Cache
-
-A production-ready reference gateway is provided in [`examples/real-world/AiInferenceCache.java`](file:///c:/Users/ASUS/OneDrive/Documents/New%20folder/examples/real-world/AiInferenceCache.java), demonstrating prompt caching for LLM inference endpoints:
-
-```
-================================================================================
- EXPERIMENTAL RESULTS: AI INFERENCE CACHE GATEWAY
- Target Database: 127.0.0.1:6388 (Core Java 21 Redis Clone)
-================================================================================
-  Total Queries Processed:     60
-  Cache Hits:                  55 (91.7%)
-  Cache Misses:                5 (8.3%)
-  Average Cache Miss Latency:  190.89 ms  (Simulated GPU Model Compute)
-  Average Cache Hit Latency:   0.48 ms    (Redis In-Memory Lookup)
-  Observed Latency Speedup:    400.8x faster on cache hit
-  Total GPU Time Saved:        10.50 seconds of compute (in 60 queries)
-================================================================================
-```
-
----
-
-## Test Suite & Chaos Resilience
-
-The repository maintains three comprehensive test suites totaling **172 automated test assertions** across functional, failure injection, and adversarial chaos domains:
-1. **Core Integration Suite (`RedisServerTest.java`):** 82 assertions testing data types, transactions, replication handshakes, cluster routing, and persistence reload.
-2. **Failure & Chaos Suite (`FailureAndEdgeCaseTest.java`):** 58 assertions verifying recovery from corrupted AOF logs, AOF compaction (`BGREWRITEAOF`) replay, invalid RDB headers, 64-bit integer overflows, bounded buffer enforcement, batch commands (`MSET`/`MGET`), `DBSIZE`, `FLUSHDB`, `AUTH`, Bitmaps (`SETBIT`/`GETBIT`/`BITCOUNT`), HyperLogLog cardinality (`PFADD`/`PFCOUNT`), Redis Streams (`XADD`/`XLEN`/`XRANGE`), and 50-thread atomic concurrency contention.
-3. **Brutal Chaos & Torture Suite (`BrutalTortureSuite.java`):** 32 assertions subjecting the engine to byte-level TCP packet fragmentation fuzzing, 100-thread CAS race torture, William Pugh SkipList distance span & rank invariant proofs (2,000 randomized operations), glob pattern Pub/Sub fuzzing (`PSUBSCRIBE`), and high-velocity active 10Hz TTL expiration saturation.
-
-```cmd
-# Run complete test suite (Windows)
-test.bat
-
-# Run multi-node replication & chaos fault-injection test (Windows / Linux)
-scripts\chaos_cluster_test.bat
-./scripts/chaos_cluster_test.sh
-
-# Run complete test suite (Linux / Mac)
-javac -d bin -cp "bin" $(find src test -name "*.java")
-java -cp "bin" com.redisclone.RedisServerTest
-java -cp "bin" com.redisclone.FailureAndEdgeCaseTest
-java -cp "bin" com.redisclone.BrutalTortureSuite
-```
-
----
-
-## Getting Started
+## Build & Run Instructions
 
 ### Prerequisites
-- **Java Development Kit (JDK) 21 or higher** (`java -version`)
-- Optional: Maven 3.8+ / Docker & Docker Compose
+- Java Development Kit (JDK) 21 or higher (`javac -version`, `java -version`)
+- Optional: Maven 3.8+ / Docker
 
 ### Building the Project
-```cmd
-# Direct compilation (Windows PowerShell / CMD)
-build.bat
 
-# Or using Maven
+**Windows (Batch):**
+```cmd
+build.bat
+```
+
+**Linux / macOS (Direct javac):**
+```bash
+mkdir -p bin
+find src -name "*.java" > sources.txt
+javac -d bin @sources.txt
+rm -f sources.txt
+```
+
+**Using Maven:**
+```bash
 mvn clean compile
 ```
 
-### Starting the Server
+### Running the Server
+
+**Windows (Default port 6379):**
 ```cmd
-# Default port 6379 (interactive)
 run.bat
-
-# Custom port with isolated persistence options
-java -cp bin com.redisclone.server.RedisServer --port 6379 --aof true --rdb true
 ```
 
-### Running Real-World Reference Applications
+**Direct Java Command:**
+```bash
+# Default configuration (port 6379, AOF and RDB enabled)
+java -cp bin com.redisclone.server.RedisServer
 
-#### 1. Semantic AI Inference Prompt Cache (400.8x speedup)
+# Custom configuration
+java -cp bin com.redisclone.server.RedisServer --port 6379 --host 127.0.0.1 --aof true --rdb true
+
+# Run as a replica
+java -cp bin com.redisclone.server.RedisServer --port 6380 --replicaof 127.0.0.1 6379
+```
+
+#### CLI Configuration Flags
+
+| Parameter | Default | Description |
+| :--- | :--- | :--- |
+| `--port <int>` | `6379` | TCP listening port |
+| `--host <string>` | `0.0.0.0` | Network interface binding |
+| `--replicaof <host> <port>` | `null` | Configure as a read-only replica of a master node |
+| `--maxkeys <int>` | `0` (unlimited) | Keyspace capacity before LRU eviction triggers |
+| `--cluster-enabled <bool>` | `false` | Enable CRC16 slot routing and `-MOVED` redirection |
+| `--aof <bool>` | `true` | Enable Append-Only File persistence (`appendonly.aof`) |
+| `--rdb <bool>` | `true` | Enable binary snapshot persistence (`dump.rdb`) |
+
+### Running with Docker
+
+**Build and Run Image:**
+```bash
+docker build -t redis-java .
+docker run -p 6379:6379 redis-java
+```
+
+**Run Master + Replica via Docker Compose:**
+```bash
+docker compose up --build
+```
+This starts `redis-master` on port 6379 and `redis-replica` on port 6380 with automatic replication.
+
+---
+
+## Test Instructions
+
+The project includes three automated test suites totaling **172 test assertions**:
+
+1. **`RedisServerTest.java` (82 assertions):** Functional regression testing for RESP parsing, fragmentation, pipelining, transactions, replication, and persistence reload.
+2. **`FailureAndEdgeCaseTest.java` (58 assertions):** Error handling and recovery testing for malformed frames, integer overflow, truncated AOF logs, corrupt RDB headers, bounded buffer limits, batch commands, and streams.
+3. **`AdversarialTest.java` (32 assertions):** Stress testing covering byte-by-byte TCP fragmentation fuzzing, 100-thread concurrent CAS races, SkipList rank/span proofs, pattern Pub/Sub matching, and active TTL saturation.
+
+**Run All Tests (Windows):**
 ```cmd
-# Terminal 1: Start Redis clone instance
-java -cp bin com.redisclone.server.RedisServer --port 6388
-
-# Terminal 2: Run AI gateway simulation
-java -cp bin com.redisclone.examples.AiInferenceCache --port 6388 --requests 60
+test.bat
 ```
 
-#### 2. Distributed Sliding-Window API Rate Limiter
+**Run All Tests (Linux / macOS):**
+```bash
+mkdir -p bin
+javac -d bin $(find src -name "*.java")
+javac -d bin -cp bin $(find test -name "*.java")
+java -cp bin com.redisclone.RedisServerTest
+java -cp bin com.redisclone.FailureAndEdgeCaseTest
+java -cp bin com.redisclone.AdversarialTest
+```
+
+**Automated Multi-Node Replication & Chaos Harness:**
 ```cmd
-# Terminal 1: Start Redis clone instance
-java -cp bin com.redisclone.server.RedisServer --port 6379
+# Windows
+scripts\chaos_cluster_test.bat
 
-# Terminal 2: Run Rate Limiter simulation
-java -cp bin com.redisclone.examples.DistributedRateLimiter --port 6379
+# Linux / macOS
+./scripts/chaos_cluster_test.sh
 ```
 
-### Running the Systems Benchmark Suite
-```cmd
-java -cp bin com.redisclone.benchmark.RedisBenchmark --port 6388 --suite --out-dir benchmark/results
-```
+---
+
+## Benchmark Methodology & Results
+
+Performance was evaluated using the built-in benchmarking suites on OpenJDK 21 (Temurin HotSpot JVM) on an 11th Gen Intel Core i5-1135G7 (4 physical cores, Windows 11). Tests were run over localhost TCP with persistence disabled (`--aof false --rdb false`) to isolate networking and memory engine throughput.
+
+Detailed methodology and raw results are documented in [`docs/BENCHMARKING.md`](docs/BENCHMARKING.md).
+
+### Component Microbenchmarks (`MicrobenchmarkSuite.java`)
+
+| Measurement | Implementation | Latency (ns/op) | Throughput (ops/sec) |
+| :--- | :--- | :--- | :--- |
+| **RESP Numeric Parsing** | Custom ASCII parser (`parseAsciiLong`) | 35.3 ns/op | ~28.3M ops/sec |
+| | JDK `Long.parseLong(new String(bytes))` | 116.9 ns/op | ~8.5M ops/sec |
+| **CRC16 Hash Slot Calculation** | `Crc16.getSlot(byte[])` | 125.8 ns/op | ~7.9M slots/sec |
+| **DataStore Memory Access** | `GET` lookup | 721.8 ns/op | ~1.39M reads/sec |
+| | `SET` mutation | 731.9 ns/op | ~1.37M writes/sec |
+
+### End-to-End Throughput & Latency (`RedisBenchmark.java`)
+
+#### Concurrency Sweep (Pipeline Depth = 1, Payload = 16B)
+
+| Workload | Concurrency | Throughput (RPS) | p50 Latency (ms) | p99 Latency (ms) |
+| :--- | :---: | :---: | :---: | :---: |
+| **PING** | 1 client | 14,361.28 | 0.061 ms | 0.181 ms |
+| **SET** | 1 client | 13,360.15 | 0.067 ms | 0.222 ms |
+| **GET** | 1 client | 15,368.53 | 0.061 ms | 0.181 ms |
+| **PING** | 10 clients | 22,125.64 | 0.351 ms | 1.397 ms |
+| **SET** | 10 clients | 17,698.78 | 0.425 ms | 2.225 ms |
+| **GET** | 10 clients | 20,273.08 | 0.396 ms | 1.685 ms |
+
+#### Pipelining Sweep (20 Clients, 20,000 Requests)
+
+| Workload | Concurrency | Pipeline Depth | Throughput (RPS) | p50 Latency (ms) |
+| :--- | :---: | :---: | :---: | :---: |
+| **SET** | 20 | 1 | 20,196.79 | 0.822 ms |
+| **SET** | 20 | 4 | 24,592.34 | 0.656 ms |
+| **SET** | 20 | 16 | 35,240.58 | 0.502 ms |
+| **SET** | 20 | 64 | **42,357.90** | **0.296 ms** |
+
+---
+
+## Technical Documentation
+
+Detailed technical documents are available in [`docs/`](docs/):
+
+- [**`docs/ARCHITECTURE.md`**](docs/ARCHITECTURE.md): Comprehensive systems design, sequence diagrams, memory layouts, and subsystem mechanics.
+- [**`docs/DESIGN_DECISIONS.md`**](docs/DESIGN_DECISIONS.md): Architecture Decision Records (ADRs 001–008) and theoretical influences.
+- [**`docs/COMMAND_REFERENCE.md`**](docs/COMMAND_REFERENCE.md): Complete reference for all 47 commands, complexity, and wire formats.
+- [**`docs/BENCHMARKING.md`**](docs/BENCHMARKING.md): Benchmark methodology, environment specifications, and latency percentiles.
+- [**`docs/SECURITY.md`**](docs/SECURITY.md): Threat model, buffer boundaries, integer overflow protections, and network isolation guidelines.
 
 ---
 
 ## Known Limitations
 
-1. **Linux `fork()` vs Java JVM Snapshots:** Official C Redis invokes POSIX `fork()` for copy-on-write RDB snapshotting. In Java, memory snapshots are serialized directly via safe concurrent iterators (`ConcurrentHashMap`), avoiding OS fork latency but requiring concurrent memory coordination.
-2. **Security & Access Control:** The server implements standard password authentication (`AUTH`), but does not implement fine-grained Access Control Lists (`ACL`) or direct TLS encryption in the reactor core. The engine is designed for isolated private subnets, service-mesh mTLS proxies (e.g. Envoy), or localhost loopback environments.
-3. **Cluster Failover Consensus:** The cluster simulation implements CRC16 slot routing and client-side `-MOVED` redirection, but does not implement full multi-node Gossip protocol heartbeat monitoring or automated Raft-based shard election.
+1. **Memory Footprint:** As a Java application, key-value entries incur JVM object header overhead (~32–48 bytes per entry) compared to raw C structs (`dictEntry`) managed by `jemalloc`.
+2. **Access Control & TLS:** The server supports the `AUTH` command syntax for client compatibility, but does not enforce password verification, ACLs, or direct TLS. The engine should be deployed in private networks, local loopback, or behind a TLS-terminating sidecar proxy (e.g. Envoy).
+3. **Cluster Protocol:** The cluster module implements CRC16 slot calculation and client-side `-MOVED` redirection, but does not implement the inter-node gossip cluster bus for automatic failover.
+4. **Single-Reactor Execution:** Command execution occurs on the single event loop thread. Long-running operations (such as large range queries or synchronous snapshots) block concurrent clients until completion.
 
 ---
 
