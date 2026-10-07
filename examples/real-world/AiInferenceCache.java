@@ -8,21 +8,14 @@ import java.security.MessageDigest;
 import java.util.*;
 
 /**
- * Real-World Reference Application: High-Performance AI Inference & Prompt Cache Gateway.
+ * Example Application: In-Memory Prompt Cache Simulation.
  *
- * Problem Statement:
- * Deep Learning & Large Language Model (LLM) inference carries severe computational cost,
- * high GPU latency (typically 150-400ms per inference), and monetary expense. In production
- * conversational AI and search engines, up to 40-70% of user queries share identical or
- * semantically normalized intent ("What is binary search?", "what is binary search", "WHAT IS BINARY SEARCH?").
+ * Demonstrates:
+ * 1. Text normalization and deterministic hashing (SHA-256) to construct cache keys.
+ * 2. RESP protocol interaction over TCP sockets using GET and SET with TTL (EX).
+ * 3. Cache lookup pattern with a simulated backend delay on cache misses.
  *
- * Solution:
- * This reference gateway sits between client requests and an expensive AI inference engine.
- * 1. Incoming user prompts undergo deterministic normalization (whitespace compaction, lowercase, punctuation strip).
- * 2. A cryptographic SHA-256 fingerprint produces a localized Redis key: "ai:prompt:<hash>".
- * 3. Cache Hit: Retrieved from Java 21 Redis clone in < 1ms.
- * 4. Cache Miss: Evaluates inference engine (mocked at 180ms latency without external paid APIs),
- *    caches the generated response in Redis with an expiration TTL (EX 3600), and returns the result.
+ * Note: The backend model latency is simulated using Thread.sleep for demonstration purposes.
  */
 public class AiInferenceCache {
 
@@ -157,9 +150,9 @@ public class AiInferenceCache {
         }
 
         System.out.println("================================================================================");
-        System.out.println(" AI INFERENCE CACHE GATEWAY (Redis-Backed Semantic Prompt Cache)");
+        System.out.println(" PROMPT CACHE SIMULATION (Example Application)");
         System.out.println(" Target Database: " + host + ":" + port);
-        System.out.println(" Simulated Inference Cost: ~180 ms per cache miss | Cache Hit: <1 ms");
+        System.out.println(" Simulated Backend Delay: ~180 ms per cache miss | In-Memory Hit: <1 ms");
         System.out.println("================================================================================");
 
         AiInferenceCache gateway = new AiInferenceCache(host, port, 3600);
@@ -215,15 +208,15 @@ public class AiInferenceCache {
         double savedComputeSeconds = (misses > 0 ? hits * (avgMiss / 1000.0) : 0.0);
 
         System.out.println("\n================================================================================");
-        System.out.println(" EXPERIMENTAL RESULTS: AI INFERENCE CACHE GATEWAY");
+        System.out.println(" SIMULATION RESULTS: PROMPT CACHE EXAMPLE");
         System.out.println("================================================================================");
         System.out.printf("  Total Queries Processed:     %d%n", numRequests);
         System.out.printf("  Cache Hits:                  %d (%.1f%%)%n", hits, hitRatio * 100.0);
         System.out.printf("  Cache Misses:                %d (%.1f%%)%n", misses, (1.0 - hitRatio) * 100.0);
-        System.out.printf("  Average Cache Miss Latency:  %.2f ms (Simulated Model Compute)%n", avgMiss);
-        System.out.printf("  Average Cache Hit Latency:   %.2f ms (Redis In-Memory Lookup)%n", avgHit);
-        System.out.printf("  Observed Latency Speedup:    %.1fx faster on cache hit%n", latencySpeedup);
-        System.out.printf("  Total GPU Time Saved:        %.2f seconds of compute%n", savedComputeSeconds);
+        System.out.printf("  Average Simulated Miss Time: %.2f ms (Simulated Backend Compute)%n", avgMiss);
+        System.out.printf("  Average Cache Hit Latency:   %.2f ms (In-Memory Lookup)%n", avgHit);
+        System.out.printf("  Speedup vs Simulated Delay:  %.1fx faster on cache hit%n", latencySpeedup);
+        System.out.printf("  Simulated Latency Avoided:   %.2f seconds%n", savedComputeSeconds);
         System.out.println("================================================================================");
     }
 }

@@ -11,12 +11,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Production-Grade Distributed Sliding-Window API Rate Limiter
+ * Example Application: Fixed-Window Rate Limiter.
  *
  * Demonstrates:
- * 1. High-throughput distributed rate limiting protecting critical microservices.
- * 2. Atomic transactions via MULTI/EXEC over RESP protocol.
- * 3. Empirical p50, p99 latency benchmarking under concurrent multi-threaded load.
+ * 1. Rate limiting pattern using atomic INCR and EXPIRE commands over RESP.
+ * 2. Managing key expiration windows per client identifier.
+ * 3. Handling concurrent client requests over TCP sockets.
  */
 public class DistributedRateLimiter {
 
@@ -97,7 +97,7 @@ public class DistributedRateLimiter {
         int windowSeconds = 1;
 
         System.out.println("================================================================================");
-        System.out.println(" DISTRIBUTED RATE LIMITER BENCHMARK (Custom Redis Gateway)");
+        System.out.println(" RATE LIMITER EXAMPLE (Fixed-Window Counter)");
         System.out.println(" Target Server: " + host + ":" + port + " | Max Allowed: " + maxRps + " req/sec");
         System.out.println("================================================================================");
 
