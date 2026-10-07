@@ -5,8 +5,8 @@ echo "==========================================================================
 echo " AUTOMATED CHAOS, REPLICATION & FAULT-INJECTION TEST HARNESS (POSIX)"
 echo "================================================================================"
 
-MASTER_PORT=6389
-REPLICA_PORT=6390
+MASTER_PORT=6410
+REPLICA_PORT=6411
 
 cleanup() {
     echo "Cleaning up background server processes..."

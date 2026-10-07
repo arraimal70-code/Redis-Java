@@ -5,8 +5,8 @@ echo ===========================================================================
 echo  AUTOMATED CHAOS, REPLICATION AND FAULT-INJECTION TEST HARNESS
 echo ================================================================================
 
-set MASTER_PORT=6389
-set REPLICA_PORT=6390
+set MASTER_PORT=6410
+set REPLICA_PORT=6411
 
 echo [1/5] Compiling Core Java 21 Redis Engine...
 call build.bat
