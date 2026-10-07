@@ -38,7 +38,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo ================================================================================
-echo  ✅ ALL CHAOS, REPLICATION & FAULT TESTS PASSED DETERMINISTICALLY!
+echo  ALL CHAOS, REPLICATION AND FAULT TESTS PASSED DETERMINISTICALLY!
 echo ================================================================================
 
 :cleanup
